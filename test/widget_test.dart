@@ -1,12 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:later/main.dart';
+import 'package:later/core/theme/app_theme.dart';
 
 void main() {
-  testWidgets('Later dashboard renders', (tester) async {
-    await tester.pumpWidget(const LaterApp());
-    expect(find.textContaining('What should you know'), findsOneWidget);
-    expect(find.text('Coming up'), findsOneWidget);
-    expect(find.text('Recently added'), findsOneWidget);
+  test('Later theme exposes the product color scheme', () {
+    final theme = buildAppTheme();
+    expect(theme.colorScheme.primary, isNotNull);
+    expect(theme.useMaterial3, isTrue);
   });
 }

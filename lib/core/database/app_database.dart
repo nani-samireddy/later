@@ -33,18 +33,32 @@ class MoneyEntries extends Table {
   BoolColumn get owedToMe => boolean()();
   DateTimeColumn get dueDate => dateTime().nullable()();
   BoolColumn get settled => boolean().withDefault(const Constant(false))();
+  TextColumn get kind => text().withDefault(const Constant('debt'))();
 }
 
-@DriftDatabase(tables: [Things, Attachments, AppSettings, MoneyEntries])
+class MoneyAttachments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get moneyId => integer().references(MoneyEntries, #id)();
+  TextColumn get name => text()();
+  TextColumn get path => text()();
+  TextColumn get kind => text()();
+}
+
+@DriftDatabase(
+  tables: [Things, Attachments, AppSettings, MoneyEntries, MoneyAttachments],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 5;
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
-    onUpgrade: (m, from) async {
+    onUpgrade: (m, from, to) async {
       if (from < 2) await m.createTable(moneyEntries);
+      if (from < 3) await m.createTable(moneyAttachments);
+      if (from < 4) await m.createTable(appSettings);
+      if (from < 5) await m.addColumn(moneyEntries, moneyEntries.kind);
     },
   );
 
@@ -64,6 +78,16 @@ class AppDatabase extends _$AppDatabase {
   Future<List<MoneyEntry>> allMoney() => select(moneyEntries).get();
   Future<int> addMoney(MoneyEntriesCompanion entry) =>
       into(moneyEntries).insert(entry);
+  Future<List<MoneyAttachment>> moneyAttachmentsFor(int moneyId) => (select(
+    moneyAttachments,
+  )..where((row) => row.moneyId.equals(moneyId))).get();
+  Future<int> addMoneyAttachment(MoneyAttachmentsCompanion attachment) =>
+      into(moneyAttachments).insert(attachment);
+  Future<void> updateMoney(int id, MoneyEntriesCompanion entry) async {
+    await (update(
+      moneyEntries,
+    )..where((row) => row.id.equals(id))).write(entry);
+  }
 }
 
 QueryExecutor _openConnection() => driftDatabase(name: 'later');

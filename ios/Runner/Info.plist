@@ -8,6 +8,10 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Later</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Later uses the microphone to create entries from your spoken description.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Later converts your spoken description into a Thing or Money entry.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
