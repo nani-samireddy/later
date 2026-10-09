@@ -1,16 +1,24 @@
-part of 'home_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:later/core/database/app_database.dart' hide Thing;
+import 'package:later/core/utils/search_match.dart';
+import 'package:later/core/widgets/recent_card.dart';
+import 'package:later/core/widgets/section_header.dart';
+import 'package:later/core/widgets/summary_card.dart';
+import 'package:later/features/things/domain/thing.dart';
+import 'package:later/features/upcoming/presentation/widgets/upcoming_reminders.dart';
 
-class _Dashboard extends StatelessWidget {
-  final List<ThingRecord> entries;
+class HomeDashboard extends StatelessWidget {
+  final List<Thing> entries;
   final List<MoneyEntry> moneyEntries;
   final String query;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearchTap;
   final VoidCallback onOpenUpcoming;
   final VoidCallback onOpenThings;
-  final ValueChanged<ThingRecord> onOpenThing;
+  final ValueChanged<Thing> onOpenThing;
   final VoidCallback onSettingsTap;
-  const _Dashboard({
+  const HomeDashboard({
+    super.key,
     required this.entries,
     required this.moneyEntries,
     required this.query,
@@ -93,13 +101,13 @@ class _Dashboard extends StatelessWidget {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final cards = [
-                      _SummaryCard(
+                      SummaryCard(
                         title: 'Owed to you',
                         value: '₹${owedToMe.toStringAsFixed(0)}',
                         icon: Icons.arrow_downward_rounded,
                         tint: Color(0xFFE2F1E7),
                       ),
-                      _SummaryCard(
+                      SummaryCard(
                         title: 'You owe',
                         value: '₹${owedByMe.toStringAsFixed(0)}',
                         icon: Icons.arrow_upward_rounded,
@@ -125,15 +133,15 @@ class _Dashboard extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 30),
-                _SectionHeader(
+                SectionHeader(
                   title: 'Coming up',
                   action: 'View all',
                   onAction: onOpenUpcoming,
                 ),
                 const SizedBox(height: 12),
-                _UpcomingList(entries: entries, moneyEntries: moneyEntries),
+                UpcomingReminders(entries: entries, moneyEntries: moneyEntries),
                 const SizedBox(height: 26),
-                _SectionHeader(
+                SectionHeader(
                   title: 'Recently added',
                   action: 'See all',
                   onAction: onOpenThings,
@@ -146,13 +154,13 @@ class _Dashboard extends StatelessWidget {
                     ...entries
                         .where(
                           (entry) =>
-                              _matches(entry.title, entry.category, query),
+                              matchesSearch(entry.title, entry.category, query),
                         )
                         .take(4)
                         .map(
                           (entry) => GestureDetector(
                             onTap: () => onOpenThing(entry),
-                            child: _RecentCard(
+                            child: RecentCard(
                               icon: entry.icon,
                               title: entry.title,
                               detail: entry.category,

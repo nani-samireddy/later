@@ -1,3 +1,5 @@
+import 'widgets/search_heading.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart' hide Thing;
@@ -57,7 +59,7 @@ class _SearchScreenState extends State<SearchScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           if (things.isNotEmpty) ...[
-            const _Heading('Things'),
+            const SearchHeading('Things'),
             ...things.map(
               (item) => ListTile(
                 onTap: () => widget.onThingTap(item),
@@ -68,7 +70,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ],
           if (money.isNotEmpty) ...[
-            const _Heading('Money'),
+            const SearchHeading('Money'),
             ...money.map(
               (item) => ListTile(
                 onTap: () => Navigator.push(
@@ -102,14 +104,4 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
-}
-
-class _Heading extends StatelessWidget {
-  final String text;
-  const _Heading(this.text);
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 12, bottom: 6),
-    child: Text(text, style: Theme.of(context).textTheme.titleLarge),
-  );
 }

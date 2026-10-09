@@ -4,21 +4,8 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 
 import '../ai/local_entry_ai.dart';
 
-class PaymentScreenshotData {
-  final String text;
-  final String amount;
-  final String merchant;
-  final String attachmentPath;
-  final LocalEntryData? aiData;
-
-  const PaymentScreenshotData({
-    required this.text,
-    required this.amount,
-    required this.merchant,
-    required this.attachmentPath,
-    this.aiData,
-  });
-}
+import 'payment_screenshot_data.dart';
+export 'payment_screenshot_data.dart';
 
 class PaymentScreenshotParser {
   static Future<PaymentScreenshotData?> parse(String filePath) async {

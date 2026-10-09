@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.later.later"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk {
+        version = release(37) { minorApiLevel = 0 }
+    }
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

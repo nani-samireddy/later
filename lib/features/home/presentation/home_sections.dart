@@ -1,14 +1,27 @@
-part of 'home_screen.dart';
+import '../../money/presentation/widgets/money_list_tile.dart';
 
-class _SectionPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:later/core/database/app_database.dart' hide Thing;
+import 'package:later/core/utils/search_match.dart';
+import 'package:later/core/widgets/category_pill.dart';
+import 'package:later/core/widgets/empty_state.dart';
+import 'package:later/features/money/presentation/money_detail_screen.dart';
+import 'package:later/features/things/domain/thing.dart';
+import 'package:later/features/things/presentation/widgets/thing_list_tile.dart';
+import 'package:later/features/upcoming/presentation/widgets/upcoming_reminders.dart';
+
+class HomeSectionPage extends StatelessWidget {
+  final AppDatabase database;
   final int index;
-  final List<ThingRecord> entries;
+  final List<Thing> entries;
   final List<MoneyEntry> moneyEntries;
   final Future<void> Function() onMoneyChanged;
   final String query;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearchTap;
-  const _SectionPage({
+  const HomeSectionPage({
+    super.key,
+    required this.database,
     required this.index,
     required this.entries,
     required this.moneyEntries,
@@ -57,10 +70,19 @@ class _SectionPage extends StatelessWidget {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    _Pill(label: 'Appliances', icon: Icons.kitchen_outlined),
-                    _Pill(label: 'Documents', icon: Icons.description_outlined),
-                    _Pill(label: 'Medicines', icon: Icons.medication_outlined),
-                    _Pill(label: 'Tools', icon: Icons.handyman_outlined),
+                    CategoryPill(
+                      label: 'Appliances',
+                      icon: Icons.kitchen_outlined,
+                    ),
+                    CategoryPill(
+                      label: 'Documents',
+                      icon: Icons.description_outlined,
+                    ),
+                    CategoryPill(
+                      label: 'Medicines',
+                      icon: Icons.medication_outlined,
+                    ),
+                    CategoryPill(label: 'Tools', icon: Icons.handyman_outlined),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -74,14 +96,15 @@ class _SectionPage extends StatelessWidget {
                 const SizedBox(height: 10),
                 ...entries
                     .where(
-                      (entry) => _matches(entry.title, entry.category, query),
+                      (entry) =>
+                          matchesSearch(entry.title, entry.category, query),
                     )
-                    .map((entry) => _ThingRecordListTile(entry: entry)),
+                    .map((entry) => ThingListTile(entry: entry)),
               ],
             )
           else if (index == 2)
             moneyEntries.isEmpty
-                ? const _EmptyState(
+                ? const EmptyState(
                     icon: Icons.account_balance_wallet_outlined,
                     title: 'No transactions yet',
                     body: 'Add money you owe or money owed to you.',
@@ -90,58 +113,31 @@ class _SectionPage extends StatelessWidget {
                     children: moneyEntries
                         .where(
                           (entry) =>
-                              _matches(entry.person, entry.reason, query),
+                              matchesSearch(entry.person, entry.reason, query),
                         )
                         .map(
-                          (entry) => Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            child: ListTile(
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => MoneyDetailScreen(
-                                      entry: entry,
-                                      database: appDatabase,
-                                    ),
+                          (entry) => MoneyListTile(
+                            entry: entry,
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MoneyDetailScreen(
+                                    entry: entry,
+                                    database: database,
                                   ),
-                                );
-                                await onMoneyChanged();
-                              },
-                              leading: Icon(
-                                entry.kind == 'spending'
-                                    ? Icons.shopping_bag_outlined
-                                    : entry.owedToMe
-                                    ? Icons.arrow_downward_rounded
-                                    : Icons.arrow_upward_rounded,
-                                color: entry.kind == 'spending'
-                                    ? const Color(0xFF5C6BC0)
-                                    : entry.owedToMe
-                                    ? const Color(0xFF34725F)
-                                    : const Color(0xFFC66A3D),
-                              ),
-                              title: Text(entry.person),
-                              subtitle: Text(
-                                entry.kind == 'spending'
-                                    ? 'Spending${entry.reason.isEmpty ? '' : ' · ${entry.reason}'}'
-                                    : entry.reason,
-                              ),
-                              trailing: Text(
-                                '${entry.currency} ${entry.amount.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
                                 ),
-                              ),
-                            ),
+                              );
+                              await onMoneyChanged();
+                            },
                           ),
                         )
                         .toList(),
                   )
           else if (index == 3)
-            _UpcomingList(entries: entries, moneyEntries: moneyEntries)
+            UpcomingReminders(entries: entries, moneyEntries: moneyEntries)
           else
-            const _EmptyState(
+            const EmptyState(
               icon: Icons.event_available_outlined,
               title: 'Your timeline is clear',
               body: 'Dates from your entries will appear here.',
@@ -150,11 +146,4 @@ class _SectionPage extends StatelessWidget {
       ),
     );
   }
-}
-
-bool _matches(String first, String second, String query) {
-  final normalized = query.trim().toLowerCase();
-  return normalized.isEmpty ||
-      first.toLowerCase().contains(normalized) ||
-      second.toLowerCase().contains(normalized);
 }

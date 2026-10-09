@@ -1,24 +1,16 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart' as services;
+
 import 'package:flutter_gemma/flutter_gemma.dart';
 
-class LocalEntryData {
-  final String kind;
-  final String person;
-  final String amount;
-  final String description;
-
-  const LocalEntryData({
-    required this.kind,
-    required this.person,
-    required this.amount,
-    required this.description,
-  });
-}
+import 'local_entry_data.dart';
+export 'local_entry_data.dart';
 
 class LocalEntryAi {
   static const modelAsset = 'assets/models/qwen3_0.6b.litertlm';
   static Future<dynamic>? _modelFuture;
+  static Future<bool>? _modelAvailable;
 
   static Future<dynamic> _model() => _modelFuture ??= _installAndLoadModel();
 
@@ -31,6 +23,10 @@ class LocalEntryAi {
 
   static Future<LocalEntryData?> extract(String input) async {
     if (input.trim().isEmpty) return null;
+    final available = await (_modelAvailable ??=
+        services.AssetManifest.loadFromAssetBundle(services.rootBundle)
+            .then((manifest) => manifest.listAssets().contains(modelAsset)));
+    if (!available) return null;
     try {
       final model = await _model();
       final chat = await model.createChat();
