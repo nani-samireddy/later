@@ -2425,30 +2425,28 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ]);
 }
 
-typedef $$ThingsTableCreateCompanionBuilder =
-    ThingsCompanion Function({
-      Value<int> id,
-      required String title,
-      Value<String> description,
-      Value<String> status,
-      Value<DateTime?> completedAt,
-      Value<DateTime?> archivedAt,
-      required String category,
-      required int iconCodePoint,
-      Value<DateTime?> reminderDate,
-    });
-typedef $$ThingsTableUpdateCompanionBuilder =
-    ThingsCompanion Function({
-      Value<int> id,
-      Value<String> title,
-      Value<String> description,
-      Value<String> status,
-      Value<DateTime?> completedAt,
-      Value<DateTime?> archivedAt,
-      Value<String> category,
-      Value<int> iconCodePoint,
-      Value<DateTime?> reminderDate,
-    });
+typedef $$ThingsTableCreateCompanionBuilder = ThingsCompanion Function({
+  Value<int> id,
+  required String title,
+  Value<String> description,
+  Value<String> status,
+  Value<DateTime?> completedAt,
+  Value<DateTime?> archivedAt,
+  required String category,
+  required int iconCodePoint,
+  Value<DateTime?> reminderDate,
+});
+typedef $$ThingsTableUpdateCompanionBuilder = ThingsCompanion Function({
+  Value<int> id,
+  Value<String> title,
+  Value<String> description,
+  Value<String> status,
+  Value<DateTime?> completedAt,
+  Value<DateTime?> archivedAt,
+  Value<String> category,
+  Value<int> iconCodePoint,
+  Value<DateTime?> reminderDate,
+});
 
 final class $$ThingsTableReferences
     extends BaseReferences<_$AppDatabase, $ThingsTable, Thing> {
@@ -3073,17 +3071,15 @@ class $$AttachmentsTableTableManager
                     >
                   >(state) {
                     if (thingId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.thingId,
-                                referencedTable: $$AttachmentsTableReferences
-                                    ._thingIdTable(db),
-                                referencedColumn: $$AttachmentsTableReferences
-                                    ._thingIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.thingId,
+                        referencedTable: $$AttachmentsTableReferences
+                            ._thingIdTable(db),
+                        referencedColumn: $$AttachmentsTableReferences
+                            ._thingIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -3209,12 +3205,11 @@ class $$AppSettingsTableTableManager
               $$AppSettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$AppSettingsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> key = const Value.absent(),
-                Value<String> value = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => AppSettingsCompanion(key: key, value: value, rowid: rowid),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => AppSettingsCompanion(key: key, value: value, rowid: rowid),
           createCompanionCallback:
               ({
                 required String key,
@@ -4052,19 +4047,15 @@ class $$MoneyAttachmentsTableTableManager
                     >
                   >(state) {
                     if (moneyId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.moneyId,
-                                referencedTable:
-                                    $$MoneyAttachmentsTableReferences
-                                        ._moneyIdTable(db),
-                                referencedColumn:
-                                    $$MoneyAttachmentsTableReferences
-                                        ._moneyIdTable(db)
-                                        .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.moneyId,
+                        referencedTable: $$MoneyAttachmentsTableReferences
+                            ._moneyIdTable(db),
+                        referencedColumn: $$MoneyAttachmentsTableReferences
+                            ._moneyIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -4352,17 +4343,15 @@ class $$MoneyPaymentsTableTableManager
                     >
                   >(state) {
                     if (moneyId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.moneyId,
-                                referencedTable: $$MoneyPaymentsTableReferences
-                                    ._moneyIdTable(db),
-                                referencedColumn: $$MoneyPaymentsTableReferences
-                                    ._moneyIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.moneyId,
+                        referencedTable: $$MoneyPaymentsTableReferences
+                            ._moneyIdTable(db),
+                        referencedColumn: $$MoneyPaymentsTableReferences
+                            ._moneyIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
