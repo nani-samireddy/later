@@ -93,7 +93,7 @@ acceptance checks pass; hardware/runtime limitations are recorded explicitly.
 
 ## Verification evidence — 10 October 2026
 - `flutter analyze`: no issues.
-- `flutter test`: 107 passed, one native speech test skipped in the ordinary suite.
+- `flutter test`: 109 passed, one native speech test skipped in the ordinary suite.
 - Covered status persistence, combined search filters, repayment correction/settlement, migration, backup validation/rollback, saved reminder defaults, recurrence boundaries, notification adapters, capture review, download cancellation and cleanup, strict AI parsing and fallback.
 - Voice native decoder separately recognized the publisher's WAV; model checksums matched. Physical microphone and permission-dialog testing remains pending.
 - Android local AI loaded the verified Qwen3 model and generated tokens, but did not complete readiness within 90 seconds. Completed native extraction remains unverified; manual/OCR fallback is available. iOS/web AI is disabled for this runtime.
@@ -102,5 +102,6 @@ acceptance checks pass; hardware/runtime limitations are recorded explicitly.
 - Backup archives are local, unencrypted, and limited to 64 MB compressed. Android native export/import pickers and canceled restore preview passed; existing records stayed unchanged. Android may append `.gz` to the archive filename.
 - Six Android integration tests passed: milestone persistence, notification navigation/PDF viewing, camera save/cancellation/private-file cleanup, native OCR, warm screenshot sharing/unreadable input handling, and backup export/import preview cancellation. Drivers preserve existing data and remove their own QA records/files.
 - Cold-start screenshot sharing also passed in the normal installed app: native OCR populated Asha Rao / 1250.50, payment confirmation stayed unchecked, and review was canceled without saving. The normal app is running on the emulator.
+- Reference UI restyle: top tabs, compact Things cards with completion controls, pastel balance cards, and shared filter sheets. 320/411 px navigation and layout checks passed; the updated normal app was visually inspected on Android.
 
 - Website: locked install, production build/type-check, 1280/768/390/320 px browser checks, direct legal routes/reloads, capture-tab keyboard controls, reduced motion, workflow syntax and local branch-publication simulation passed. Configure GitHub Pages to `gh-pages` / root after pushing; live deployment/API acceptance remains unverified. See `website/VERIFICATION.md`.

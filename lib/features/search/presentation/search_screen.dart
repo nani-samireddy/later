@@ -1,6 +1,6 @@
 import '../../home/data/home_repository.dart';
 import 'widgets/search_heading.dart';
-import 'widgets/entry_filter_controls.dart';
+import 'widgets/entry_filter_sheet.dart';
 import '../domain/entry_filters.dart';
 
 import 'package:flutter/material.dart';
@@ -32,48 +32,10 @@ class _SearchScreenState extends State<SearchScreen> {
   late List<MoneyEntry> _money = widget.moneyEntries;
   Future<void> _openFilters() async {
     FocusScope.of(context).unfocus();
-    var draft = filters;
-    final selected = await showModalBottomSheet<EntryFilters>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Search filters',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              EntryFilterControls(
-                categories: (_things.map((e) => e.category).toSet().toList()
-                  ..sort()),
-                initialFilters: filters,
-                onChanged: (value) => draft = value,
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context, draft),
-                    child: const Text('Apply filters'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    final selected = await showEntryFilterSheet(
+      context,
+      filters: filters,
+      categories: (_things.map((e) => e.category).toSet().toList()..sort()),
     );
     if (selected != null && mounted) setState(() => filters = selected);
   }

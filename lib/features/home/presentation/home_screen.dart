@@ -161,6 +161,21 @@ class _LaterHomeState extends State<LaterHome> {
     if (mounted) await _loadEntries();
   }
 
+  Future<void> _completeThing(Thing entry) async {
+    try {
+      await ThingsRepository(_database).setCompleted(entry.id, true);
+      await _loadEntries();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not complete this item. Try again.'),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _viewFor(int index) => index == 0
       ? HomeDashboard(
           currency: currency,
@@ -175,6 +190,8 @@ class _LaterHomeState extends State<LaterHome> {
           onOpenThings: () => _goToPage(1),
           onOpenThing: _openThing,
           onSettingsTap: () => _goToPage(4),
+          onOpenMoneySection: () => _goToPage(2),
+          onCompleteThing: (entry) => unawaited(_completeThing(entry)),
         )
       : index == 4
       ? SettingsScreen(
@@ -189,6 +206,7 @@ class _LaterHomeState extends State<LaterHome> {
         )
       : HomeSectionPage(
           database: _database,
+          currency: currency,
           index: index,
           entries: entries,
           reminderPreferences: reminderPreferences,
@@ -301,6 +319,7 @@ class _LaterHomeState extends State<LaterHome> {
     onSelected: (value) => setState(() => selected = value),
     viewFor: _viewFor,
     onAdd: () => _showUnifiedAddSheet(context),
+    onSearch: () => _openSearch(context),
   );
 
   Future<void> _showUnifiedAddSheet(

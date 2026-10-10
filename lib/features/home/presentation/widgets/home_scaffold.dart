@@ -6,6 +6,7 @@ class HomeScaffold extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final Widget Function(int) viewFor;
   final VoidCallback onAdd;
+  final VoidCallback onSearch;
   const HomeScaffold({
     super.key,
     required this.selected,
@@ -13,7 +14,17 @@ class HomeScaffold extends StatelessWidget {
     required this.onSelected,
     required this.viewFor,
     required this.onAdd,
+    required this.onSearch,
   });
+  void _select(int index) {
+    onSelected(index);
+    pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
@@ -21,11 +32,136 @@ class HomeScaffold extends StatelessWidget {
         builder: (context, constraints) {
           final mobile = constraints.maxWidth < 700;
           if (mobile) {
-            return PageView.builder(
-              controller: pageController,
-              onPageChanged: (value) => onSelected(value),
-              itemCount: 5,
-              itemBuilder: (_, index) => viewFor(index),
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 12, 16, 0),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'later.',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1.5,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: onSearch,
+                        tooltip: 'Search everything',
+                        icon: const Icon(Icons.search_rounded, size: 21),
+                      ),
+                      IconButton(
+                        tooltip: 'Settings',
+                        onPressed: () => _select(4),
+                        icon: const CircleAvatar(
+                          radius: 17,
+                          backgroundColor: Color(0xFFE4EAD9),
+                          child: Icon(
+                            Icons.person_outline_rounded,
+                            size: 18,
+                            color: Color(0xFF55644D),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'A little space for your day',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF7A8373),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Hey there',
+                              style: TextStyle(
+                                fontSize: 29,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -1,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Icon(
+                            Icons.emergency_outlined,
+                            size: 26,
+                            color: Color(0xFFD99763),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEBEDE5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            for (var i = 0; i < 4; i++)
+                              Expanded(
+                                child: Semantics(
+                                  selected: selected == i,
+                                  child: TextButton(
+                                    onPressed: () => _select(i),
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: selected == i
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                      foregroundColor: selected == i
+                                          ? const Color(0xFF323D35)
+                                          : const Color(0xFF7A8373),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
+                                      minimumSize: const Size(0, 44),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      [
+                                        'Overview',
+                                        'Things',
+                                        'Money',
+                                        'Upcoming',
+                                      ][i],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: PageView.builder(
+                    controller: pageController,
+                    onPageChanged: onSelected,
+                    itemCount: 5,
+                    itemBuilder: (_, index) => viewFor(index),
+                  ),
+                ),
+              ],
             );
           }
           return Row(
@@ -98,44 +234,9 @@ class HomeScaffold extends StatelessWidget {
         },
       ),
     ),
-    bottomNavigationBar: MediaQuery.sizeOf(context).width < 700
-        ? NavigationBar(
-            selectedIndex: selected < 4 ? selected : 0,
-            onDestinationSelected: (value) {
-              onSelected(value);
-              pageController.animateToPage(
-                value,
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-              );
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.inventory_2_outlined),
-                selectedIcon: Icon(Icons.inventory_2_rounded),
-                label: 'Things',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet_rounded),
-                label: 'Money',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.calendar_month_outlined),
-                selectedIcon: Icon(Icons.calendar_month_rounded),
-                label: 'Upcoming',
-              ),
-            ],
-          )
-        : null,
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => onAdd(),
-      backgroundColor: const Color(0xFF34725F),
+      backgroundColor: const Color(0xFF323D35),
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add_rounded),
       label: const Text('Add', style: TextStyle(fontWeight: FontWeight.w700)),

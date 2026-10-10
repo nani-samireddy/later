@@ -1,8 +1,24 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val signingProperties = Properties().apply {
+    val propertiesFile = rootProject.file("key.properties")
+    if (propertiesFile.exists()) propertiesFile.inputStream().use { load(it) }
+}
+fun signingValue(environment: String, property: String): String? =
+    System.getenv(environment)?.takeIf { it.isNotBlank() }
+        ?: signingProperties.getProperty(property)?.takeIf { it.isNotBlank() }
+val uploadStore = signingValue("ANDROID_KEYSTORE_PATH", "storeFile")
+val uploadStorePassword = signingValue("ANDROID_KEYSTORE_PASSWORD", "storePassword")
+val uploadAlias = signingValue("ANDROID_KEY_ALIAS", "keyAlias")
+val uploadKeyPassword = signingValue("ANDROID_KEY_PASSWORD", "keyPassword")
+val hasUploadSigning = listOf(uploadStore, uploadStorePassword, uploadAlias, uploadKeyPassword)
+    .all { it != null }
 
 android {
     namespace = "com.nanisamireddy.later"
@@ -31,12 +47,32 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("upload") {
+            if (hasUploadSigning) {
+                storeFile = rootProject.file(uploadStore!!)
+                storePassword = uploadStorePassword
+                keyAlias = uploadAlias
+                keyPassword = uploadKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("upload")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+    }
+}
+
+// Check only tasks actually selected, so debug builds remain available without secrets.
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.project == project && it.name.contains("Release", ignoreCase = true) }) {
+        check(hasUploadSigning) {
+            "Release signing missing. Set ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, " +
+                "ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD, or android/key.properties. See docs/android-release.md."
+        }
+        check(rootProject.file(uploadStore!!).isFile) { "Upload keystore file does not exist." }
     }
 }
 

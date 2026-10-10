@@ -231,6 +231,8 @@ void main() {
       await render();
       expect(find.text('Active record'), findsOneWidget);
       expect(find.text('Completed record'), findsNothing);
+      await tester.tap(find.text('Filter'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Status: Active ▾'));
       await tester.pumpAndSettle();
       await tester.tap(
@@ -239,6 +241,8 @@ void main() {
           matching: find.byType(CheckedPopupMenuItem<String>),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apply filters'));
       await tester.pumpAndSettle();
       expect(find.text('Completed record'), findsOneWidget);
       entries = [
@@ -252,6 +256,8 @@ void main() {
       await render();
       expect(find.text('Refreshed record'), findsOneWidget);
       expect(find.text('Completed record'), findsNothing);
+      await tester.tap(find.text('Filter'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Status: Completed ▾'));
       await tester.pumpAndSettle();
       await tester.tap(
@@ -260,6 +266,8 @@ void main() {
           matching: find.byType(CheckedPopupMenuItem<String>),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apply filters'));
       await tester.pumpAndSettle();
       expect(find.text('No archived things'), findsOneWidget);
     },

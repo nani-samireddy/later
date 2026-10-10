@@ -7,10 +7,12 @@ import '../../domain/money_totals.dart';
 class MoneySummaryCards extends StatelessWidget {
   final List<MoneyEntry> entries;
   final String defaultCurrency;
+  final bool showSpending;
   const MoneySummaryCards({
     super.key,
     required this.entries,
     required this.defaultCurrency,
+    this.showSpending = true,
   });
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,7 @@ class MoneySummaryCards extends StatelessWidget {
               currency,
               totals[currency]!.owedToYou,
               Icons.arrow_downward_rounded,
-              const Color(0xFFE2F1E7),
+              const Color(0xFFEAF0E0),
             ),
             _card(
               constraints,
@@ -37,16 +39,17 @@ class MoneySummaryCards extends StatelessWidget {
               currency,
               totals[currency]!.youOwe,
               Icons.arrow_upward_rounded,
-              const Color(0xFFFFEBDD),
+              const Color(0xFFF6E8D9),
             ),
-            _card(
-              constraints,
-              'Spending',
-              currency,
-              totals[currency]!.spending,
-              Icons.shopping_bag_outlined,
-              const Color(0xFFE5ECF8),
-            ),
+            if (showSpending)
+              _card(
+                constraints,
+                'Spending',
+                currency,
+                totals[currency]!.spending,
+                Icons.shopping_bag_outlined,
+                const Color(0xFFE5ECF8),
+              ),
           ],
         ],
       ),
@@ -61,9 +64,11 @@ class MoneySummaryCards extends StatelessWidget {
     IconData icon,
     Color tint,
   ) => SizedBox(
-    width: constraints.maxWidth < 600
+    width: constraints.maxWidth < 240
         ? constraints.maxWidth
-        : (constraints.maxWidth - 24) / 3,
+        : (constraints.maxWidth -
+                  (showSpending && constraints.maxWidth >= 600 ? 24 : 12)) /
+              (showSpending && constraints.maxWidth >= 600 ? 3 : 2),
     child: SummaryCard(
       title: title,
       value: '$currency ${amount.toStringAsFixed(2)}',

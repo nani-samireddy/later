@@ -59,6 +59,7 @@ void main() {
           onSelected: (value) => selected = value,
           viewFor: (_) => const SizedBox(),
           onAdd: () => addCount++,
+          onSearch: () {},
         ),
       ),
     );

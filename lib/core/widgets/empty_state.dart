@@ -12,21 +12,39 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(30),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      color: const Color(0xFFF0F2EA),
+      border: Border.all(color: const Color(0xFFE4E7DE)),
+      borderRadius: BorderRadius.circular(12),
     ),
-    child: Column(
+    child: Row(
       children: [
-        Icon(icon, size: 42, color: const Color(0xFF34725F)),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        Icon(icon, size: 26, color: const Color(0xFF81936E)),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                body,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.4,
+                  color: Color(0xFF7A8373),
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 5),
-        Text(body, textAlign: TextAlign.center),
       ],
     ),
   );

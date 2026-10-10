@@ -4,7 +4,9 @@ import '../../../core/widgets/empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:later/core/database/app_database.dart' hide Thing;
 import 'package:later/core/utils/search_match.dart';
-import 'package:later/core/widgets/recent_card.dart';
+
+import '../../things/presentation/widgets/thing_list_tile.dart';
+
 import 'package:later/core/widgets/section_header.dart';
 
 import '../../money/presentation/widgets/money_summary_cards.dart';
@@ -25,6 +27,8 @@ class HomeDashboard extends StatelessWidget {
   final VoidCallback onOpenThings;
   final ValueChanged<Thing> onOpenThing;
   final VoidCallback onSettingsTap;
+  final VoidCallback onOpenMoneySection;
+  final ValueChanged<Thing> onCompleteThing;
   const HomeDashboard({
     super.key,
     required this.currency,
@@ -39,129 +43,76 @@ class HomeDashboard extends StatelessWidget {
     required this.onOpenThings,
     required this.onOpenThing,
     required this.onSettingsTap,
+    required this.onOpenMoneySection,
+    required this.onCompleteThing,
   });
   @override
-  Widget build(BuildContext context) => Builder(
-    builder: (context) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(34, 30, 34, 110),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1050),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final heading = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Good morning',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'What should you know\nright now?',
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                            height: 1.05,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ],
-                    );
-                    final actions = Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: onSearchTap,
-                          icon: const Icon(Icons.search_rounded, size: 28),
-                        ),
-                        IconButton(
-                          onPressed: onSettingsTap,
-                          icon: const Icon(Icons.settings_outlined, size: 25),
-                        ),
-                      ],
-                    );
-                    return constraints.maxWidth < 420
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              heading,
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: actions,
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [heading, actions],
-                          );
-                  },
+  Widget build(BuildContext context) {
+    final visible = entries
+        .where(
+          (entry) =>
+              entry.isActive &&
+              matchesSearch(entry.title, entry.category, query),
+        )
+        .take(3)
+        .toList();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 100),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionHeader(
+                title: 'Your things',
+                action: 'View all →',
+                onAction: onOpenThings,
+              ),
+              const SizedBox(height: 12),
+              if (visible.isEmpty)
+                const EmptyState(
+                  icon: Icons.eco_outlined,
+                  title: 'A little room to remember',
+                  body: 'Save a thing now. Come back to it later.',
                 ),
-                const SizedBox(height: 28),
-                MoneySummaryCards(
-                  entries: moneyEntries,
-                  defaultCurrency: currency,
+              for (final entry in visible)
+                ThingListTile(
+                  entry: entry,
+                  onTap: () => onOpenThing(entry),
+                  onCompleted: () => onCompleteThing(entry),
                 ),
-                const SizedBox(height: 30),
-                SectionHeader(
-                  title: 'Coming up',
-                  action: 'View all',
-                  onAction: onOpenUpcoming,
-                ),
-                const SizedBox(height: 12),
-                UpcomingReminders(
-                  preferences: reminderPreferences,
-                  entries: entries,
-                  moneyEntries: moneyEntries,
-                  onThingTap: onOpenThing,
-                  onMoneyTap: onOpenMoney,
-                ),
-                const SizedBox(height: 26),
-                SectionHeader(
-                  title: 'Recently added',
-                  action: 'See all',
-                  onAction: onOpenThings,
-                ),
-                const SizedBox(height: 12),
-                if (!entries.any((entry) => entry.isActive))
-                  const EmptyState(
-                    icon: Icons.inventory_2_outlined,
-                    title: 'Nothing saved yet',
-                    body: 'Tap Add to save your first item.',
-                  ),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    ...entries
-                        .where(
-                          (entry) =>
-                              entry.isActive &&
-                              matchesSearch(entry.title, entry.category, query),
-                        )
-                        .take(4)
-                        .map(
-                          (entry) => GestureDetector(
-                            onTap: () => onOpenThing(entry),
-                            child: RecentCard(
-                              icon: entry.icon,
-                              title: entry.title,
-                              detail: entry.category,
-                            ),
-                          ),
-                        ),
-                  ],
-                ),
-              ],
-            ),
+              const SizedBox(height: 24),
+              SectionHeader(
+                title: 'A little money clarity',
+                action: 'View money',
+                actionIcon: Icons.north_east_rounded,
+                onAction: onOpenMoneySection,
+              ),
+              const SizedBox(height: 12),
+              MoneySummaryCards(
+                entries: moneyEntries,
+                defaultCurrency: currency,
+                showSpending: false,
+              ),
+              const SizedBox(height: 24),
+              SectionHeader(
+                title: 'Coming up',
+                action: 'View all →',
+                onAction: onOpenUpcoming,
+              ),
+              const SizedBox(height: 12),
+              UpcomingReminders(
+                preferences: reminderPreferences,
+                entries: entries,
+                moneyEntries: moneyEntries,
+                onThingTap: onOpenThing,
+                onMoneyTap: onOpenMoney,
+              ),
+            ],
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 }
