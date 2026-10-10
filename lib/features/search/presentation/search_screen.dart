@@ -30,6 +30,54 @@ class _SearchScreenState extends State<SearchScreen> {
   final controller = TextEditingController();
   late List<Thing> _things = widget.things;
   late List<MoneyEntry> _money = widget.moneyEntries;
+  Future<void> _openFilters() async {
+    FocusScope.of(context).unfocus();
+    var draft = filters;
+    final selected = await showModalBottomSheet<EntryFilters>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Search filters',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              EntryFilterControls(
+                categories: (_things.map((e) => e.category).toSet().toList()
+                  ..sort()),
+                initialFilters: filters,
+                onChanged: (value) => draft = value,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, draft),
+                    child: const Text('Apply filters'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null && mounted) setState(() => filters = selected);
+  }
+
   Future<void> _reload() async {
     final repository = HomeRepository(widget.database);
     final things = await repository.loadThings();
@@ -77,10 +125,23 @@ class _SearchScreenState extends State<SearchScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          EntryFilterControls(
-            categories: (_things.map((e) => e.category).toSet().toList()
-              ..sort()),
-            onChanged: (value) => setState(() => filters = value),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: _openFilters,
+              icon: const Icon(Icons.filter_list_rounded),
+              label: Text(
+                filters.category != null ||
+                        filters.status != null ||
+                        filters.moneyType != MoneyType.all ||
+                        filters.settled != null ||
+                        filters.start != null ||
+                        filters.end != null ||
+                        filters.sort != EntrySort.newest
+                    ? 'Filter · active'
+                    : 'Filter',
+              ),
+            ),
           ),
           if (things.isNotEmpty) ...[
             const SearchHeading('Things'),

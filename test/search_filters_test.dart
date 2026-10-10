@@ -130,7 +130,9 @@ void main() {
       );
     },
   );
-  testWidgets('compact filter selection and reset work', (tester) async {
+  testWidgets('filter sheet applies, retains, cancels and resets selections', (
+    tester,
+  ) async {
     final database = db.AppDatabase.withExecutor(NativeDatabase.memory());
     addTearDown(database.close);
     await tester.pumpWidget(
@@ -146,6 +148,10 @@ void main() {
         ),
       ),
     );
+    expect(find.text('Status: All ▾'), findsNothing);
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    expect(find.text('Search filters'), findsOneWidget);
     await tester.tap(find.text('Status: All ▾'));
     await tester.pumpAndSettle();
     await tester.tap(
@@ -155,10 +161,26 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Apply filters'));
+    await tester.pumpAndSettle();
     expect(find.text('Item 1'), findsNothing);
     expect(find.text('Item 2'), findsOneWidget);
+    await tester.tap(find.text('Filter · active'));
+    await tester.pumpAndSettle();
+    expect(find.text('Status: Completed ▾'), findsOneWidget);
     await tester.tap(find.text('Reset filters'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Item 1'), findsNothing);
+    await tester.tap(find.text('Filter · active'));
+    await tester.pumpAndSettle();
+    expect(find.text('Status: Completed ▾'), findsOneWidget);
+    await tester.tap(find.text('Reset filters'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apply filters'));
+    await tester.pumpAndSettle();
+    expect(find.text('Filter'), findsOneWidget);
     expect(find.text('Item 1'), findsOneWidget);
   });
 }

@@ -8,6 +8,7 @@ class EntryFilterControls extends StatefulWidget {
   final bool showThings;
   final bool showMoney;
   final ThingStatus? initialStatus;
+  final EntryFilters? initialFilters;
   final ValueChanged<EntryFilters> onChanged;
   const EntryFilterControls({
     super.key,
@@ -16,18 +17,26 @@ class EntryFilterControls extends StatefulWidget {
     this.showThings = true,
     this.showMoney = true,
     this.initialStatus,
+    this.initialFilters,
   });
   @override
   State<EntryFilterControls> createState() => _EntryFilterControlsState();
 }
 
 class _EntryFilterControlsState extends State<EntryFilterControls> {
-  String? category;
-  late ThingStatus? status = widget.initialStatus;
-  MoneyType type = MoneyType.all;
-  bool? settled;
-  EntrySort sort = EntrySort.newest;
-  DateTimeRange? range;
+  late String? category = widget.initialFilters?.category;
+  late ThingStatus? status =
+      widget.initialFilters?.status ?? widget.initialStatus;
+  late MoneyType type = widget.initialFilters?.moneyType ?? MoneyType.all;
+  late bool? settled = widget.initialFilters?.settled;
+  late EntrySort sort = widget.initialFilters?.sort ?? EntrySort.newest;
+  late DateTimeRange? range =
+      widget.initialFilters?.start != null && widget.initialFilters?.end != null
+      ? DateTimeRange(
+          start: widget.initialFilters!.start!,
+          end: widget.initialFilters!.end!,
+        )
+      : null;
   void emit() => widget.onChanged(
     EntryFilters(
       category: category,
