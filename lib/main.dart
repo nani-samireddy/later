@@ -9,7 +9,16 @@ export 'app/app.dart' show LaterApp;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.initialize();
-  await FlutterGemma.initialize();
+  // Manual entry stays available when a platform plugin cannot finish startup.
+  try {
+    await NotificationService.initialize().timeout(const Duration(seconds: 10));
+  } catch (error) {
+    debugPrint('Notification startup unavailable: $error');
+  }
+  try {
+    await FlutterGemma.initialize().timeout(const Duration(seconds: 10));
+  } catch (error) {
+    debugPrint('Optional AI startup unavailable: $error');
+  }
   runApp(const LaterApp());
 }

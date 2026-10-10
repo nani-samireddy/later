@@ -3,57 +3,83 @@ import 'dart:io';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import '../ai/local_entry_ai.dart';
-
 import 'payment_screenshot_data.dart';
 export 'payment_screenshot_data.dart';
 
 class PaymentScreenshotParser {
   static Future<PaymentScreenshotData?> parse(String filePath) async {
-    if (!File(filePath).existsSync()) return null;
+    if (!await File(filePath).exists()) {
+      throw const FileSystemException('Shared image is no longer available.');
+    }
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    String text;
     try {
-      final result = await recognizer.processImage(
-        InputImage.fromFilePath(filePath),
-      );
-      final text = result.text.trim();
-      if (text.isEmpty) return null;
-      final aiData = await LocalEntryAi.extract(text);
-      return PaymentScreenshotData(
-        text: text,
-        amount: _amount(text),
-        merchant: _merchant(text),
-        attachmentPath: filePath,
-        aiData: aiData,
-      );
+      text = (await recognizer.processImage(InputImage.fromFilePath(filePath)))
+          .text
+          .trim();
     } finally {
       await recognizer.close();
     }
+    LocalEntryData? aiData;
+    if (text.isNotEmpty) {
+      try {
+        aiData = await LocalEntryAi.extract(text);
+      } catch (_) {
+        /* OCR remains usable. */
+      }
+    }
+    return fromText(text, filePath, aiData: aiData);
   }
 
-  static String _amount(String text) {
-    final match = RegExp(
+  /// Pure OCR interpretation, also used by fixture tests. Multiple different
+  /// currency amounts are intentionally left for manual review.
+  static PaymentScreenshotData fromText(
+    String text,
+    String filePath, {
+    LocalEntryData? aiData,
+  }) {
+    final matches = RegExp(
       r'(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)|(?:amount|total|paid)\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d{1,2})?)',
       caseSensitive: false,
-    ).firstMatch(text);
-    return (match?.group(1) ?? match?.group(2) ?? '').replaceAll(',', '');
+    ).allMatches(text);
+    final amounts = matches
+        .map((m) => (m.group(1) ?? m.group(2)!).replaceAll(',', ''))
+        .where((v) => (double.tryParse(v) ?? 0) > 0)
+        .toSet();
+    final merchant = _merchant(text);
+    return PaymentScreenshotData(
+      text: text.trim(),
+      amount: amounts.length == 1 ? amounts.single : '',
+      merchant: merchant,
+      attachmentPath: filePath,
+      aiData: aiData,
+      reviewMessage: text.trim().isEmpty
+          ? 'No text found. Enter the details manually; the image is attached for review.'
+          : amounts.length > 1
+          ? 'Several amounts found. Choose the correct amount and payment type.'
+          : 'Review the extracted details and choose the payment type. A payment does not establish who owes whom.',
+    );
   }
 
   static String _merchant(String text) {
     final lines = text
         .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty);
-    for (final line in lines.take(8)) {
-      final lower = line.toLowerCase();
-      if (lower.contains('upi') ||
-          lower.contains('transaction') ||
-          lower.contains('reference') ||
-          lower.contains('successful') ||
-          lower.contains('paid') ||
-          lower.contains('amount')) {
-        continue;
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    for (var i = 0; i < lines.length; i++) {
+      final match = RegExp(
+        r'^(?:paid to|payment to|sent to|received from|to|from)\s*[:\-]?\s*(.*)$',
+        caseSensitive: false,
+      ).firstMatch(lines[i]);
+      if (match != null) {
+        final value = match.group(1)!.trim();
+        if (value.isNotEmpty) return value;
+        if (i + 1 < lines.length &&
+            RegExp(r'[a-zA-Z]').hasMatch(lines[i + 1])) {
+          return lines[i + 1];
+        }
       }
-      if (RegExp(r'[a-zA-Z]').hasMatch(line)) return line;
     }
     return '';
   }

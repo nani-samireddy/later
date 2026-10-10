@@ -70,5 +70,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos to attach to your tasks.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos to attach to your tasks.</string>
 </dict>
 </plist>

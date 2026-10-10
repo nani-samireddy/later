@@ -1,19 +1,25 @@
+import '../../../core/reminders/reminder_preferences.dart';
 import '../../money/presentation/widgets/money_list_tile.dart';
+import '../../money/presentation/widgets/spending_history.dart';
 
 import 'package:flutter/material.dart';
 import 'package:later/core/database/app_database.dart' hide Thing;
-import 'package:later/core/utils/search_match.dart';
-import 'package:later/core/widgets/category_pill.dart';
+
+import '../../search/domain/entry_filters.dart';
+import '../../search/presentation/widgets/entry_filter_controls.dart';
+
 import 'package:later/core/widgets/empty_state.dart';
 import 'package:later/features/money/presentation/money_detail_screen.dart';
 import 'package:later/features/things/domain/thing.dart';
 import 'package:later/features/things/presentation/widgets/thing_list_tile.dart';
 import 'package:later/features/upcoming/presentation/widgets/upcoming_reminders.dart';
 
-class HomeSectionPage extends StatelessWidget {
+class HomeSectionPage extends StatefulWidget {
   final AppDatabase database;
+  final ValueChanged<Thing> onThingTap;
   final int index;
   final List<Thing> entries;
+  final Map<String, ReminderPreferences> reminderPreferences;
   final List<MoneyEntry> moneyEntries;
   final Future<void> Function() onMoneyChanged;
   final String query;
@@ -22,8 +28,10 @@ class HomeSectionPage extends StatelessWidget {
   const HomeSectionPage({
     super.key,
     required this.database,
+    required this.onThingTap,
     required this.index,
     required this.entries,
+    this.reminderPreferences = const {},
     required this.moneyEntries,
     required this.onMoneyChanged,
     required this.query,
@@ -31,7 +39,41 @@ class HomeSectionPage extends StatelessWidget {
     required this.onSearchTap,
   });
   @override
+  State<HomeSectionPage> createState() => _HomeSectionPageState();
+}
+
+class _HomeSectionPageState extends State<HomeSectionPage> {
+  EntryFilters filters = const EntryFilters(status: ThingStatus.active);
+  @override
+  void didUpdateWidget(covariant HomeSectionPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.index != widget.index) {
+      filters = const EntryFilters(status: ThingStatus.active);
+    }
+  }
+
+  AppDatabase get database => widget.database;
+  ValueChanged<Thing> get onThingTap => widget.onThingTap;
+  int get index => widget.index;
+  List<Thing> get entries => widget.entries;
+  List<MoneyEntry> get moneyEntries => widget.moneyEntries;
+  Future<void> Function() get onMoneyChanged => widget.onMoneyChanged;
+  String get query => widget.query;
+  VoidCallback get onSearchTap => widget.onSearchTap;
+  @override
   Widget build(BuildContext context) {
+    final current = EntryFilters(
+      query: query,
+      category: filters.category,
+      status: filters.status,
+      moneyType: filters.moneyType,
+      settled: filters.settled,
+      start: filters.start,
+      end: filters.end,
+      sort: filters.sort,
+    );
+    final visible = current.things(entries);
+    final visibleMoney = current.money(moneyEntries);
     final title = ['Home', 'Things', 'Money', 'Upcoming'][index];
     final copy = index == 1
         ? 'Everything you want to find again.'
@@ -55,6 +97,7 @@ class HomeSectionPage extends StatelessWidget {
               ),
               IconButton(
                 onPressed: onSearchTap,
+                tooltip: 'Search everything',
                 icon: const Icon(Icons.search_rounded),
               ),
             ],
@@ -66,76 +109,107 @@ class HomeSectionPage extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    CategoryPill(
-                      label: 'Appliances',
-                      icon: Icons.kitchen_outlined,
-                    ),
-                    CategoryPill(
-                      label: 'Documents',
-                      icon: Icons.description_outlined,
-                    ),
-                    CategoryPill(
-                      label: 'Medicines',
-                      icon: Icons.medication_outlined,
-                    ),
-                    CategoryPill(label: 'Tools', icon: Icons.handyman_outlined),
-                  ],
+                EntryFilterControls(
+                  key: const ValueKey('things-filters'),
+                  categories: (entries.map((e) => e.category).toSet().toList()
+                    ..sort()),
+                  showMoney: false,
+                  initialStatus: ThingStatus.active,
+                  onChanged: (value) => setState(() => filters = value),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 Text(
-                  '${entries.length} items',
+                  '${visible.length} ${filters.status?.label.toLowerCase() ?? 'matching'} items',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 10),
-                ...entries
-                    .where(
-                      (entry) =>
-                          matchesSearch(entry.title, entry.category, query),
-                    )
-                    .map((entry) => ThingListTile(entry: entry)),
+                if (visible.isEmpty)
+                  EmptyState(
+                    icon: Icons.inventory_2_outlined,
+                    title:
+                        'No ${filters.status?.label.toLowerCase() ?? 'matching'} things',
+                    body: 'Items in this state will appear here.',
+                  ),
+                ...visible.map(
+                  (entry) => ThingListTile(
+                    entry: entry,
+                    onTap: () => onThingTap(entry),
+                  ),
+                ),
               ],
             )
           else if (index == 2)
-            moneyEntries.isEmpty
-                ? const EmptyState(
+            Column(
+              children: [
+                EntryFilterControls(
+                  key: const ValueKey('money-filters'),
+                  categories: const [],
+                  showThings: false,
+                  onChanged: (value) => setState(() => filters = value),
+                ),
+                if (visibleMoney.isEmpty)
+                  const EmptyState(
                     icon: Icons.account_balance_wallet_outlined,
-                    title: 'No transactions yet',
-                    body: 'Add money you owe or money owed to you.',
-                  )
-                : Column(
-                    children: moneyEntries
-                        .where(
-                          (entry) =>
-                              matchesSearch(entry.person, entry.reason, query),
-                        )
-                        .map(
-                          (entry) => MoneyListTile(
+                    title: 'No matching transactions',
+                    body: 'Try changing your search or filters.',
+                  ),
+                if (filters.moneyType == MoneyType.spending &&
+                    filters.sort == EntrySort.newest)
+                  SpendingHistory(
+                    entries: visibleMoney,
+                    onTap: (entry) async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MoneyDetailScreen(
                             entry: entry,
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MoneyDetailScreen(
-                                    entry: entry,
-                                    database: database,
-                                  ),
-                                ),
-                              );
-                              await onMoneyChanged();
-                            },
+                            database: database,
                           ),
-                        )
-                        .toList(),
+                        ),
+                      );
+                      await onMoneyChanged();
+                    },
                   )
+                else
+                  ...visibleMoney.map(
+                    (entry) => MoneyListTile(
+                      entry: entry,
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MoneyDetailScreen(
+                              entry: entry,
+                              database: database,
+                            ),
+                          ),
+                        );
+                        await onMoneyChanged();
+                      },
+                    ),
+                  ),
+              ],
+            )
           else if (index == 3)
-            UpcomingReminders(entries: entries, moneyEntries: moneyEntries)
+            UpcomingReminders(
+              preferences: widget.reminderPreferences,
+              entries: entries,
+              moneyEntries: moneyEntries,
+              onThingTap: onThingTap,
+              onMoneyTap: (entry) async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        MoneyDetailScreen(entry: entry, database: database),
+                  ),
+                );
+                await onMoneyChanged();
+              },
+            )
           else
             const EmptyState(
               icon: Icons.event_available_outlined,

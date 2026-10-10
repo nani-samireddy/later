@@ -30,3 +30,58 @@ creation and payment OCR remain available using the existing parsing fallback.
 
 Android builds use compile SDK 37.0. The project corrects the sharing plugin's
 API 37 declaration to include minor API level 0, matching the published SDK.
+
+## First milestone
+
+The manual-entry milestone is tracked in [MILESTONE.md](MILESTONE.md).
+Things support persistent editing and deletion. Money totals are grouped by currency,
+exclude settled debts, and keep spending separate. Reminders preserve the selected
+local date and time and are cancelled when removed, settled, or deleted. Attachments
+are copied into private app storage, with image previews and external document opening.
+
+Run both Android end-to-end checks on a connected emulator with a PDF viewer installed:
+
+```sh
+python3 tool/verify_android.py --device emulator-5554
+```
+
+This check creates a temporary item, edits it, reopens a copied image after deleting
+its source, verifies native reminder registration and settlement cancellation,
+restarts the app widget tree, and deletes the test records. The extended check also
+verifies money validation/editing/settlement, actual notification delivery and tap
+navigation, PDF opening, and missing-file feedback. The runner grants the test app
+notification/exact-alarm permissions and performs the Android system UI steps.
+Unit tests also cover
+SQLite reopen persistence, migration, validation, currency totals, timezone conversion,
+and rollback when an attachment cannot be copied.
+
+Android notification and exact-alarm permissions control reminder delivery. The app
+requests these permissions through the reminder flow. Document opening requires an
+installed viewer for the selected file type.
+
+## Adding an item
+
+Choose **Thing** or **Money**, enter a title, and optionally add a description,
+attachments, or a reminder. Money entries add only an amount and a choice of
+**I spent money**, **Someone owes me**, or **I owe someone**. For debts, use the
+person’s name as the title; for spending, use a purchase or merchant. Thing
+descriptions are stored separately and can be edited from the item details.
+
+The Android application ID and iOS bundle identifier are `com.nanisamireddy.later`.
+
+
+## Feature tasks and verification
+
+See [TASKS.md](TASKS.md) for the eleven feature tasks, acceptance checks, and platform limitations. Quick Add includes reviewed voice input and **Take photo**; recurring reminders, archive, repayment history, filters, and local backup are connected to their screens. Settings controls the default reminder time and optional local AI model.
+
+```sh
+flutter analyze
+flutter test
+python3 tool/verify_android.py --device emulator-5554
+python3 tool/verify_camera_android.py
+python3 tool/verify_backup_android.py
+python3 tool/verify_cold_share_android.py # Requires the normal app installed.
+flutter test -d emulator-5554 --no-pub --no-uninstall integration_test/payment_ocr_test.dart
+```
+
+The separate React landing site and branch-based GitHub Pages workflow are documented in [website/README.md](website/README.md).

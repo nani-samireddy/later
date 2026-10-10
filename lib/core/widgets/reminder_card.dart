@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ReminderCard extends StatelessWidget {
+  final VoidCallback? onTap;
   final IconData icon;
   final Color color;
   final String title, subtitle;
   const ReminderCard({
     super.key,
+    this.onTap,
     required this.icon,
     required this.color,
     required this.title,
@@ -17,6 +19,7 @@ class ReminderCard extends StatelessWidget {
     color: Colors.white,
     margin: const EdgeInsets.only(bottom: 8),
     child: ListTile(
+      onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
         padding: const EdgeInsets.all(10),
@@ -28,7 +31,7 @@ class ReminderCard extends StatelessWidget {
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: onTap == null ? null : const Icon(Icons.chevron_right_rounded),
     ),
   );
 }

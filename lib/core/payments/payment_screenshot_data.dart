@@ -6,6 +6,7 @@ class PaymentScreenshotData {
   final String merchant;
   final String attachmentPath;
   final LocalEntryData? aiData;
+  final String reviewMessage;
 
   const PaymentScreenshotData({
     required this.text,
@@ -13,5 +14,6 @@ class PaymentScreenshotData {
     required this.merchant,
     required this.attachmentPath,
     this.aiData,
+    this.reviewMessage = 'Review the extracted details before saving.',
   });
 }

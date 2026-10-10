@@ -1,14 +1,22 @@
+import '../../../core/reminders/reminder_preferences.dart';
+import '../../../core/widgets/empty_state.dart';
+
 import 'package:flutter/material.dart';
 import 'package:later/core/database/app_database.dart' hide Thing;
 import 'package:later/core/utils/search_match.dart';
 import 'package:later/core/widgets/recent_card.dart';
 import 'package:later/core/widgets/section_header.dart';
-import 'package:later/core/widgets/summary_card.dart';
+
+import '../../money/presentation/widgets/money_summary_cards.dart';
+
 import 'package:later/features/things/domain/thing.dart';
 import 'package:later/features/upcoming/presentation/widgets/upcoming_reminders.dart';
 
 class HomeDashboard extends StatelessWidget {
+  final ValueChanged<MoneyEntry> onOpenMoney;
+  final String currency;
   final List<Thing> entries;
+  final Map<String, ReminderPreferences> reminderPreferences;
   final List<MoneyEntry> moneyEntries;
   final String query;
   final ValueChanged<String> onQueryChanged;
@@ -19,7 +27,10 @@ class HomeDashboard extends StatelessWidget {
   final VoidCallback onSettingsTap;
   const HomeDashboard({
     super.key,
+    required this.currency,
+    required this.onOpenMoney,
     required this.entries,
+    this.reminderPreferences = const {},
     required this.moneyEntries,
     required this.query,
     required this.onQueryChanged,
@@ -32,12 +43,6 @@ class HomeDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Builder(
     builder: (context) {
-      final owedToMe = moneyEntries
-          .where((entry) => entry.kind == 'debt' && entry.owedToMe)
-          .fold<double>(0, (sum, entry) => sum + entry.amount);
-      final owedByMe = moneyEntries
-          .where((entry) => entry.kind == 'debt' && !entry.owedToMe)
-          .fold<double>(0, (sum, entry) => sum + entry.amount);
       return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(34, 30, 34, 110),
         child: Center(
@@ -98,39 +103,9 @@ class HomeDashboard extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 28),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final cards = [
-                      SummaryCard(
-                        title: 'Owed to you',
-                        value: '₹${owedToMe.toStringAsFixed(0)}',
-                        icon: Icons.arrow_downward_rounded,
-                        tint: Color(0xFFE2F1E7),
-                      ),
-                      SummaryCard(
-                        title: 'You owe',
-                        value: '₹${owedByMe.toStringAsFixed(0)}',
-                        icon: Icons.arrow_upward_rounded,
-                        tint: Color(0xFFFFEBDD),
-                      ),
-                    ];
-                    if (constraints.maxWidth < 430) {
-                      return Column(
-                        children: [
-                          cards[0],
-                          const SizedBox(height: 12),
-                          cards[1],
-                        ],
-                      );
-                    }
-                    return Row(
-                      children: [
-                        Expanded(child: cards[0]),
-                        const SizedBox(width: 14),
-                        Expanded(child: cards[1]),
-                      ],
-                    );
-                  },
+                MoneySummaryCards(
+                  entries: moneyEntries,
+                  defaultCurrency: currency,
                 ),
                 const SizedBox(height: 30),
                 SectionHeader(
@@ -139,7 +114,13 @@ class HomeDashboard extends StatelessWidget {
                   onAction: onOpenUpcoming,
                 ),
                 const SizedBox(height: 12),
-                UpcomingReminders(entries: entries, moneyEntries: moneyEntries),
+                UpcomingReminders(
+                  preferences: reminderPreferences,
+                  entries: entries,
+                  moneyEntries: moneyEntries,
+                  onThingTap: onOpenThing,
+                  onMoneyTap: onOpenMoney,
+                ),
                 const SizedBox(height: 26),
                 SectionHeader(
                   title: 'Recently added',
@@ -147,6 +128,12 @@ class HomeDashboard extends StatelessWidget {
                   onAction: onOpenThings,
                 ),
                 const SizedBox(height: 12),
+                if (!entries.any((entry) => entry.isActive))
+                  const EmptyState(
+                    icon: Icons.inventory_2_outlined,
+                    title: 'Nothing saved yet',
+                    body: 'Tap Add to save your first item.',
+                  ),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -154,6 +141,7 @@ class HomeDashboard extends StatelessWidget {
                     ...entries
                         .where(
                           (entry) =>
+                              entry.isActive &&
                               matchesSearch(entry.title, entry.category, query),
                         )
                         .take(4)

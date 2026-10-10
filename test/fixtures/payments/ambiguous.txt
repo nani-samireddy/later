@@ -1,0 +1,4 @@
+Payment successful
+Paid to Market
+₹500
+Balance ₹1500

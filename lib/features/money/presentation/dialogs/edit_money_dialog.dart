@@ -1,8 +1,10 @@
+import '../../../../core/widgets/reminder_picker.dart';
+import '../../domain/amount.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../data/money_repository.dart';
-import '../../../../core/utils/date_format.dart';
 
 Future<bool?> showEditMoneyDialog(
   BuildContext context, {
@@ -12,6 +14,8 @@ Future<bool?> showEditMoneyDialog(
   final person = TextEditingController(text: entry.person);
   final amount = TextEditingController(text: entry.amount.toString());
   final reason = TextEditingController(text: entry.reason);
+  String? error;
+  var saving = false;
   var owedToMe = entry.owedToMe;
   var moneyKind = entry.kind == 'spending'
       ? 'spending'
@@ -20,7 +24,7 @@ Future<bool?> showEditMoneyDialog(
   TimeOfDay reminderTime = entry.dueDate == null
       ? const TimeOfDay(hour: 9, minute: 0)
       : TimeOfDay(hour: entry.dueDate!.hour, minute: entry.dueDate!.minute);
-  final saved = await showDialog<bool>(
+  final route = DialogRoute<bool>(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
@@ -50,47 +54,35 @@ Future<bool?> showEditMoneyDialog(
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Amount',
-                  prefixText: '₹ ',
+                  prefixText: '${entry.currency} ',
                 ),
               ),
               TextField(
                 controller: reason,
                 decoration: const InputDecoration(labelText: 'Reason'),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.notifications_none_rounded),
-                title: Text(
-                  dueDate == null
-                      ? 'Add reminder'
-                      : 'Reminder: ${formatDate(dueDate!)}',
+              if (error != null)
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime(2100),
-                    initialDate:
-                        dueDate ?? DateTime.now().add(const Duration(days: 7)),
-                  );
-                  if (picked != null) setDialogState(() => dueDate = picked);
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.schedule_rounded),
-                title: Text('Time: ${reminderTime.format(context)}'),
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: reminderTime,
-                  );
-                  if (picked != null) {
-                    setDialogState(() => reminderTime = picked);
-                  }
-                },
+              ReminderPicker(
+                database: database,
+                value: dueDate == null
+                    ? null
+                    : DateTime(
+                        dueDate!.year,
+                        dueDate!.month,
+                        dueDate!.day,
+                        reminderTime.hour,
+                        reminderTime.minute,
+                      ),
+                onChanged: (date) => setDialogState(() {
+                  dueDate = date;
+                  if (date != null) reminderTime = TimeOfDay.fromDateTime(date);
+                }),
               ),
             ],
           ),
@@ -101,33 +93,58 @@ Future<bool?> showEditMoneyDialog(
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () async {
-              final parsedAmount = double.tryParse(amount.text.trim());
-              if (person.text.trim().isEmpty ||
-                  parsedAmount == null ||
-                  parsedAmount <= 0) {
-                return;
-              }
-              await MoneyRepository(database).edit(
-                entry,
-                person: person.text.trim(),
-                amount: parsedAmount,
-                reason: reason.text.trim(),
-                owedToMe: owedToMe,
-                moneyKind: moneyKind,
-                dueDate: dueDate,
-                reminderTime: reminderTime,
-              );
-              if (dialogContext.mounted) {
-                Navigator.pop(dialogContext, true);
-              }
-            },
+            onPressed: saving
+                ? null
+                : () async {
+                    final parsedAmount = parseAmount(amount.text);
+                    if ((moneyKind != 'spending' &&
+                            person.text.trim().isEmpty) ||
+                        parsedAmount == null ||
+                        !parsedAmount.isFinite) {
+                      setDialogState(
+                        () => error = 'Enter a name and a positive amount with up to two decimal places.',
+                      );
+                      return;
+                    }
+                    setDialogState(() => saving = true);
+                    try {
+                      await MoneyRepository(database).edit(
+                        entry,
+                        person: person.text.trim(),
+                        amount: parsedAmount,
+                        reason: reason.text.trim(),
+                        owedToMe: owedToMe,
+                        moneyKind: moneyKind,
+                        dueDate: dueDate,
+                        reminderTime: reminderTime,
+                      );
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext, true);
+                      }
+                    } on ArgumentError catch (e) {
+                      if (dialogContext.mounted) {
+                        setDialogState(() {
+                          saving = false;
+                          error = e.message.toString();
+                        });
+                      }
+                    } catch (_) {
+                      if (dialogContext.mounted) {
+                        setDialogState(() {
+                          saving = false;
+                          error = 'Could not save changes. Try again.';
+                        });
+                      }
+                    }
+                  },
             child: const Text('Save'),
           ),
         ],
       ),
     ),
   );
+  final saved = await Navigator.of(context).push(route);
+  await route.completed;
   person.dispose();
   amount.dispose();
   reason.dispose();

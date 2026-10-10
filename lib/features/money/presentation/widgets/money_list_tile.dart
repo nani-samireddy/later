@@ -28,10 +28,14 @@ class MoneyListTile extends StatelessWidget {
       subtitle: Text(
         entry.kind == 'spending'
             ? 'Spending${entry.reason.isEmpty ? '' : ' · ${entry.reason}'}'
-            : entry.reason,
+            : '${entry.settled
+                  ? 'Settled · '
+                  : entry.paidAmount > 0
+                  ? 'Partially repaid · '
+                  : ''}${entry.reason}',
       ),
       trailing: Text(
-        '${entry.currency} ${entry.amount.toStringAsFixed(0)}',
+        '${entry.currency} ${(entry.kind == 'debt' && !entry.settled ? entry.amount - entry.paidAmount : entry.amount).toStringAsFixed(2)}',
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),

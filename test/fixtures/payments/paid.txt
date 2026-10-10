@@ -1,0 +1,6 @@
+Google Pay
+Payment successful
+Paid to
+Asha Rao
+₹1,250.50
+Transaction ID 123456789

@@ -1,3 +1,14 @@
+import '../../../core/reminders/reminder_preferences.dart';
+import '../../../core/camera/image_picker_camera.dart';
+import '../../capture/presentation/camera_entry_capture.dart';
+import '../../things/presentation/archive_screen.dart';
+
+import 'dart:async';
+
+import '../../../core/notifications/notification_service.dart';
+import '../../../core/notifications/reminder_coordinator.dart';
+import '../../money/presentation/money_detail_screen.dart';
+import '../../things/data/things_repository.dart';
 import 'widgets/home_scaffold.dart';
 
 import 'package:flutter/material.dart';
@@ -21,9 +32,14 @@ class LaterHome extends StatefulWidget {
 }
 
 class _LaterHomeState extends State<LaterHome> {
+  StreamSubscription<String>? _notificationTaps;
+  StreamSubscription<String>? _notificationWarnings;
   int selected = 0;
+  bool _captureOpen = false;
+  Completer<void>? _captureDone;
   late final PageController _pageController;
   List<Thing> entries = [];
+  Map<String, ReminderPreferences> reminderPreferences = {};
   List<MoneyEntry> moneyEntries = [];
   String searchQuery = '';
   String currency = 'INR';
@@ -36,45 +52,135 @@ class _LaterHomeState extends State<LaterHome> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _notificationWarnings = NotificationService.warnings.stream.listen((
+      message,
+    ) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
+    _notificationTaps = NotificationService.taps.stream.listen(
+      _openNotification,
+    );
+    ReminderCoordinator(_database).syncAll().catchError((Object error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not restore reminders. Check notification permissions.',
+            ),
+          ),
+        );
+      }
+    });
+    final payload = NotificationService.initialPayload;
+    NotificationService.initialPayload = null;
+    if (payload != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _openNotification(payload),
+      );
+    }
     _loadEntries();
     _loadMoney();
     _loadCurrency();
     _listenForSharedPaymentScreenshots();
+    unawaited(_recoverCameraCapture());
   }
 
   @override
   void dispose() {
+    _notificationTaps?.cancel();
+    _notificationWarnings?.cancel();
     _pageController.dispose();
     _sharedPayments.dispose();
     _database.close();
     super.dispose();
   }
 
-  Future<void> _listenForSharedPaymentScreenshots() =>
-      _sharedPayments.start((parsed) {
-        if (!mounted) return;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _showUnifiedAddSheet(context, paymentScreenshot: parsed);
-        });
-      });
+  Future<void> _listenForSharedPaymentScreenshots() => _sharedPayments.start(
+    (parsed) async {
+      await WidgetsBinding.instance.endOfFrame;
+      if (mounted) {
+        await _showUnifiedAddSheet(context, paymentScreenshot: parsed);
+      }
+    },
+    isReviewOpen: () => _captureOpen,
+    onFeedback: (message) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
+    },
+  );
+
+  Future<void> _recoverCameraCapture() async {
+    try {
+      final photos = await ImagePickerCamera().recoverLostPhotos();
+      if (photos.isEmpty) return;
+      await WidgetsBinding.instance.endOfFrame;
+      if (_captureOpen) await _captureDone?.future;
+      if (!mounted || _captureOpen) return;
+      _captureOpen = true;
+      _captureDone = Completer<void>();
+      try {
+        await captureCameraEntry(
+          context,
+          service: _capture,
+          currency: currency,
+          onThingsChanged: _loadEntries,
+          recoveredPhotoPaths: photos,
+        );
+      } finally {
+        _captureOpen = false;
+        _captureDone?.complete();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not recover the interrupted photo. Take it again from Add.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _reloadAll() async {
+    await Future.wait([_loadEntries(), _loadMoney(), _loadCurrency()]);
+  }
+
+  Future<void> _openArchive() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ArchiveScreen(database: _database),
+      ),
+    );
+    if (mounted) await _loadEntries();
+  }
 
   Widget _viewFor(int index) => index == 0
       ? HomeDashboard(
+          currency: currency,
+          onOpenMoney: _openMoney,
           entries: entries,
+          reminderPreferences: reminderPreferences,
           moneyEntries: moneyEntries,
           query: searchQuery,
           onQueryChanged: (value) => setState(() => searchQuery = value),
           onSearchTap: () => _openSearch(context),
           onOpenUpcoming: () => _goToPage(3),
           onOpenThings: () => _goToPage(1),
-          onOpenThing: (entry) => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ThingDetailScreen(entry: entry)),
-          ),
+          onOpenThing: _openThing,
           onSettingsTap: () => _goToPage(4),
         )
       : index == 4
       ? SettingsScreen(
+          database: _database,
+          onDataChanged: () => unawaited(_reloadAll()),
+          onOpenArchive: () => unawaited(_openArchive()),
           currency: currency,
           onCurrencyChanged: (value) async {
             setState(() => currency = value);
@@ -85,27 +191,64 @@ class _LaterHomeState extends State<LaterHome> {
           database: _database,
           index: index,
           entries: entries,
+          reminderPreferences: reminderPreferences,
           moneyEntries: moneyEntries,
           onMoneyChanged: _loadMoney,
+          onThingTap: _openThing,
           query: searchQuery,
           onQueryChanged: (value) => setState(() => searchQuery = value),
           onSearchTap: () => _openSearch(context),
         );
 
-  void _openSearch(BuildContext context) => Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => SearchScreen(
-        things: entries,
-        moneyEntries: moneyEntries,
-        database: _database,
-        onThingTap: (thing) => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ThingDetailScreen(entry: thing)),
+  Future<void> _openMoney(MoneyEntry entry) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MoneyDetailScreen(entry: entry, database: _database),
+      ),
+    );
+    await _loadMoney();
+  }
+
+  Future<void> _openNotification(String payload) async {
+    final parts = payload.split(':');
+    final id = parts.length == 2 ? int.tryParse(parts[1]) : null;
+    if (id == null || !mounted) return;
+    if (parts[0] == 'thing') {
+      final thing = await ThingsRepository(_database).find(id);
+      if (mounted && thing != null) await _openThing(thing);
+    } else if (parts[0] == 'money') {
+      final records = await _database.allMoney();
+      final matches = records.where((entry) => entry.id == id);
+      if (mounted && matches.isNotEmpty) await _openMoney(matches.first);
+    }
+  }
+
+  Future<void> _openThing(Thing entry) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ThingDetailScreen(entry: entry, database: _database),
+      ),
+    );
+    await _loadEntries();
+  }
+
+  Future<void> _openSearch(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          things: entries,
+          moneyEntries: moneyEntries,
+          database: _database,
+          onThingTap: _openThing,
         ),
       ),
-    ),
-  );
+    );
+    await _loadEntries();
+    await _loadMoney();
+  }
 
   void _goToPage(int page) {
     setState(() => selected = page);
@@ -120,17 +263,35 @@ class _LaterHomeState extends State<LaterHome> {
 
   Future<void> _loadMoney() async {
     final loaded = await _repository.loadMoney();
-    if (mounted) setState(() => moneyEntries = loaded);
+    if (mounted) {
+      setState(() => moneyEntries = loaded);
+      await _loadReminderPreferences();
+    }
+  }
+
+  Future<void> _loadReminderPreferences() async {
+    final store = ReminderPreferencesStore(_database);
+    final values = <String, ReminderPreferences>{};
+    for (final thing in entries) {
+      values['thing:${thing.id}'] = await store.read('thing', thing.id);
+    }
+    for (final money in moneyEntries) {
+      values['money:${money.id}'] = await store.read('money', money.id);
+    }
+    if (mounted) setState(() => reminderPreferences = values);
   }
 
   Future<void> _loadCurrency() async {
-    final saved = await _repository.loadCurrency();
-    if (mounted && saved != null) setState(() => currency = saved);
+    final saved = await _repository.loadCurrency() ?? 'INR';
+    if (mounted) setState(() => currency = saved);
   }
 
   Future<void> _loadEntries() async {
     final loaded = await _repository.loadThings();
-    if (mounted) setState(() => entries = loaded);
+    if (mounted) {
+      setState(() => entries = loaded);
+      await _loadReminderPreferences();
+    }
   }
 
   @override
@@ -145,12 +306,28 @@ class _LaterHomeState extends State<LaterHome> {
   Future<void> _showUnifiedAddSheet(
     BuildContext context, {
     PaymentScreenshotData? paymentScreenshot,
-  }) => showAddEntrySheet(
-    context,
-    service: _capture,
-    currency: currency,
-    onThingsChanged: _loadEntries,
-    onMoneyChanged: _loadMoney,
-    paymentScreenshot: paymentScreenshot,
-  );
+  }) async {
+    if (_captureOpen || !mounted) return;
+    _captureOpen = true;
+    _captureDone = Completer<void>();
+    try {
+      await showAddEntrySheet(
+        context,
+        service: _capture,
+        currency: currency,
+        onThingsChanged: _loadEntries,
+        onMoneyChanged: _loadMoney,
+        paymentScreenshot: paymentScreenshot,
+        onTakePhoto: () => captureCameraEntry(
+          context,
+          service: _capture,
+          currency: currency,
+          onThingsChanged: _loadEntries,
+        ),
+      );
+    } finally {
+      _captureOpen = false;
+      _captureDone?.complete();
+    }
+  }
 }
