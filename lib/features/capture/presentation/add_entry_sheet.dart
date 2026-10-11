@@ -201,18 +201,11 @@ Future<void> showAddEntrySheet(
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (kind == 'thing')
-                  NoteBodyEditor(controller: description, enabled: !saving)
-                else
-                  TextField(
-                    controller: description,
-                    enabled: !saving,
-                    minLines: 1,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Description (optional)',
-                    ),
-                  ),
+                NoteBodyEditor(
+                  controller: description,
+                  enabled: !saving,
+                  compact: true,
+                ),
                 AnimatedBuilder(
                   animation: LocalAiService.instance,
                   builder: (context, _) =>

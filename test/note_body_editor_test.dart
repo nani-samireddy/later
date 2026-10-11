@@ -8,6 +8,28 @@ import 'package:later/core/database/app_database.dart';
 import 'package:later/core/widgets/note_body_editor.dart';
 
 void main() {
+  testWidgets('external voice or suggestion text replaces checklist rows', (
+    tester,
+  ) async {
+    final body = TextEditingController(text: '- [ ] Old');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: NoteBodyEditor(controller: body, compact: true)),
+      ),
+    );
+    body.text = '- [x] New';
+    await tester.pumpAndSettle();
+    expect(find.text('Old'), findsNothing);
+    expect(find.text('New'), findsOneWidget);
+    body.text = 'Full dictated description';
+    await tester.pumpAndSettle();
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.text('Full dictated description'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    body.dispose();
+  });
+
   testWidgets('freeform lines become editable checkboxes and convert back', (
     tester,
   ) async {

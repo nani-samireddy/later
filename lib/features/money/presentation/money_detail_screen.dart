@@ -1,3 +1,4 @@
+import '../../../core/widgets/note_body_editor.dart';
 import '../../../core/widgets/entry_reminder_controls.dart';
 import '../../../core/widgets/attachment_panel.dart';
 import '../../../core/attachments/stored_attachment.dart';
@@ -212,10 +213,9 @@ class _MoneyDetailScreenState extends State<MoneyDetailScreen> {
                   ),
                 ],
                 MoneyDetailRow(label: 'Person', value: entry.person),
-                MoneyDetailRow(
-                  label: 'Reason',
-                  value: entry.reason.isEmpty ? '—' : entry.reason,
-                ),
+                const Text('Description'),
+                NoteBodyView(text: entry.reason.isEmpty ? '—' : entry.reason),
+                const SizedBox(height: 12),
                 MoneyDetailRow(
                   label: 'Status',
                   value: entry.settled ? 'Settled' : 'Open',

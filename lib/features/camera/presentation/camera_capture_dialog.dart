@@ -1,3 +1,5 @@
+import '../../../core/widgets/note_body_editor.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -193,14 +195,10 @@ class _CameraCaptureDialogState extends State<CameraCaptureDialog> {
                   hintText: 'What do you want to remember?',
                 ),
               ),
-              TextField(
+              NoteBodyEditor(
                 controller: _description,
                 enabled: !_busy,
-                minLines: 2,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                ),
+                compact: true,
               ),
               ReminderPicker(
                 database: widget.database,

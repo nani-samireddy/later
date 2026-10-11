@@ -35,17 +35,40 @@ class _NoteRow {
 
 class NoteBodyEditorState extends State<NoteBodyEditor> {
   bool checklist = false;
+  bool _writingBody = false;
+  late String _lastBody;
   final rows = <_NoteRow>[];
 
   @override
   void initState() {
     super.initState();
+    _lastBody = widget.controller.text;
+    widget.controller.addListener(_bodyChanged);
     if (widget.controller.text
         .split('\n')
         .any((line) => checklistLine.hasMatch(line))) {
       checklist = true;
       _loadRows();
     }
+  }
+
+  void _bodyChanged() {
+    final text = widget.controller.text;
+    if (_writingBody || text == _lastBody) return;
+    _lastBody = text;
+    if (!checklist && !text.split('\n').any(checklistLine.hasMatch)) return;
+    final previous = [...rows];
+    setState(() {
+      rows.clear();
+      checklist = text.split('\n').any(checklistLine.hasMatch);
+      if (checklist) _loadRows();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final row in previous) {
+        row.text.dispose();
+        row.focus.dispose();
+      }
+    });
   }
 
   void _loadRows() {
@@ -62,6 +85,7 @@ class NoteBodyEditorState extends State<NoteBodyEditor> {
   }
 
   void _sync() {
+    _writingBody = true;
     widget.controller.text = rows
         .where((row) => row.text.text.trim().isNotEmpty)
         .map(
@@ -69,6 +93,8 @@ class NoteBodyEditorState extends State<NoteBodyEditor> {
               '${'  ' * row.depth}- [${row.checked ? 'x' : ' '}] ${row.text.text}',
         )
         .join('\n');
+    _lastBody = widget.controller.text;
+    _writingBody = false;
     widget.onChanged?.call(widget.controller.text);
   }
 
@@ -104,6 +130,7 @@ class NoteBodyEditorState extends State<NoteBodyEditor> {
   }
 
   void _toggleMode() {
+    _writingBody = true;
     setState(() {
       if (checklist) {
         widget.controller.text = rows.map((row) => row.text.text).join('\n');
@@ -117,6 +144,8 @@ class NoteBodyEditorState extends State<NoteBodyEditor> {
         _sync();
       }
       checklist = !checklist;
+      _lastBody = widget.controller.text;
+      _writingBody = false;
       widget.onChanged?.call(widget.controller.text);
     });
   }
@@ -137,6 +166,7 @@ class NoteBodyEditorState extends State<NoteBodyEditor> {
 
   @override
   void dispose() {
+    widget.controller.removeListener(_bodyChanged);
     for (final row in rows) {
       row.text.dispose();
       row.focus.dispose();

@@ -1,3 +1,4 @@
+import '../../../../core/widgets/note_body_editor.dart';
 import '../../../../core/widgets/reminder_picker.dart';
 import '../../domain/amount.dart';
 
@@ -29,62 +30,70 @@ Future<bool?> showEditMoneyDialog(
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
         title: const Text('Edit money item'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'owedToMe', label: Text('Owed to me')),
-                  ButtonSegment(value: 'iOwe', label: Text('I owe')),
-                  ButtonSegment(value: 'spending', label: Text('Spending')),
-                ],
-                selected: {moneyKind},
-                onSelectionChanged: (value) => setDialogState(() {
-                  moneyKind = value.first;
-                  owedToMe = moneyKind == 'owedToMe';
-                }),
-              ),
-              TextField(
-                controller: person,
-                decoration: const InputDecoration(labelText: 'Person'),
-              ),
-              TextField(
-                controller: amount,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'owedToMe', label: Text('Owed to me')),
+                    ButtonSegment(value: 'iOwe', label: Text('I owe')),
+                    ButtonSegment(value: 'spending', label: Text('Spending')),
+                  ],
+                  selected: {moneyKind},
+                  onSelectionChanged: (value) => setDialogState(() {
+                    moneyKind = value.first;
+                    owedToMe = moneyKind == 'owedToMe';
+                  }),
                 ),
-                decoration: InputDecoration(
-                  labelText: 'Amount',
-                  prefixText: '${entry.currency} ',
+                TextField(
+                  controller: person,
+                  decoration: const InputDecoration(labelText: 'Person'),
                 ),
-              ),
-              TextField(
-                controller: reason,
-                decoration: const InputDecoration(labelText: 'Reason'),
-              ),
-              if (error != null)
-                Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                TextField(
+                  controller: amount,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Amount',
+                    prefixText: '${entry.currency} ',
+                  ),
                 ),
-              ReminderPicker(
-                database: database,
-                value: dueDate == null
-                    ? null
-                    : DateTime(
-                        dueDate!.year,
-                        dueDate!.month,
-                        dueDate!.day,
-                        reminderTime.hour,
-                        reminderTime.minute,
-                      ),
-                onChanged: (date) => setDialogState(() {
-                  dueDate = date;
-                  if (date != null) reminderTime = TimeOfDay.fromDateTime(date);
-                }),
-              ),
-            ],
+                NoteBodyEditor(
+                  controller: reason,
+                  enabled: !saving,
+                  compact: true,
+                ),
+                if (error != null)
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ReminderPicker(
+                  database: database,
+                  value: dueDate == null
+                      ? null
+                      : DateTime(
+                          dueDate!.year,
+                          dueDate!.month,
+                          dueDate!.day,
+                          reminderTime.hour,
+                          reminderTime.minute,
+                        ),
+                  onChanged: (date) => setDialogState(() {
+                    dueDate = date;
+                    if (date != null) {
+                      reminderTime = TimeOfDay.fromDateTime(date);
+                    }
+                  }),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [

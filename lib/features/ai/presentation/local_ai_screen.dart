@@ -1,3 +1,5 @@
+import '../../../core/widgets/note_body_editor.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/ai/local_ai_service.dart';
@@ -156,11 +158,7 @@ class _LocalAiReviewState extends State<LocalAiReview> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Amount'),
           ),
-          TextField(
-            controller: description,
-            maxLength: 1000,
-            decoration: const InputDecoration(labelText: 'Description'),
-          ),
+          NoteBodyEditor(controller: description, enabled: true, compact: true),
           if (error != null) Text(error!),
           FilledButton(
             onPressed: () {
