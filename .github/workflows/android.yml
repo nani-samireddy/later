@@ -85,6 +85,7 @@ jobs:
           build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           "$build_tools/apksigner" verify --verbose build/app/outputs/flutter-apk/app-release.apk
           "$build_tools/zipalign" -c -P 16 4 build/app/outputs/flutter-apk/app-release.apk
+          python3 scripts/release/verify_media_permissions.py build/app/outputs/flutter-apk/app-release.apk --aapt "$build_tools/aapt"
           python3 scripts/release/verify_native_alignment.py build/app/outputs/flutter-apk/app-release.apk
           mkdir -p release-artifacts
           cp build/app/outputs/bundle/release/app-release.aab build/app/outputs/flutter-apk/app-release.apk release-artifacts/

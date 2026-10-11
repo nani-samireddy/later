@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class HomeScaffold extends StatelessWidget {
+  final String userName;
   final int selected;
   final PageController pageController;
   final ValueChanged<int> onSelected;
@@ -9,6 +10,7 @@ class HomeScaffold extends StatelessWidget {
   final VoidCallback onSearch;
   const HomeScaffold({
     super.key,
+    this.userName = '',
     required this.selected,
     required this.pageController,
     required this.onSelected,
@@ -82,20 +84,24 @@ class HomeScaffold extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Row(
+                      Row(
                         children: [
                           Flexible(
                             child: Text(
-                              'Hey there',
-                              style: TextStyle(
+                              userName.trim().isEmpty
+                                  ? 'Hey there'
+                                  : 'Hey, ${userName.trim()}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
                                 fontSize: 29,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: -1,
                               ),
                             ),
                           ),
-                          SizedBox(width: 10),
-                          Icon(
+                          const SizedBox(width: 10),
+                          const Icon(
                             Icons.emergency_outlined,
                             size: 26,
                             color: Color(0xFFD99763),

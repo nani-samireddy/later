@@ -1,3 +1,5 @@
+import '../../../core/widgets/note_body_editor.dart';
+
 import 'dart:async';
 
 import '../../../core/ai/local_ai_service.dart';
@@ -193,17 +195,18 @@ Future<void> showAddEntrySheet(
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: description,
-                  enabled: !saving,
-                  minLines: 1,
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
-                    hintText: 'Add a little more detail',
+                if (kind == 'thing')
+                  NoteBodyEditor(controller: description, enabled: !saving)
+                else
+                  TextField(
+                    controller: description,
+                    enabled: !saving,
+                    minLines: 1,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description (optional)',
+                    ),
                   ),
-                ),
                 AnimatedBuilder(
                   animation: LocalAiService.instance,
                   builder: (context, _) =>

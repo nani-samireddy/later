@@ -1,3 +1,4 @@
+import '../../../core/widgets/home_widget_bridge.dart';
 import '../../../core/reminders/reminder_preferences.dart';
 import '../../../core/camera/image_picker_camera.dart';
 import '../../capture/presentation/camera_entry_capture.dart';
@@ -43,6 +44,8 @@ class _LaterHomeState extends State<LaterHome> {
   List<MoneyEntry> moneyEntries = [];
   String searchQuery = '';
   String currency = 'INR';
+  String userName = '';
+  final _homeWidget = HomeWidgetBridge();
   final AppDatabase _database = AppDatabase();
   late final HomeRepository _repository = HomeRepository(_database);
   late final EntryCaptureService _capture = EntryCaptureService(_database);
@@ -52,6 +55,16 @@ class _LaterHomeState extends State<LaterHome> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _homeWidget.start((action) async {
+        if (!mounted) return;
+        if (action == 'add') await _showUnifiedAddSheet(context);
+        if (action == 'upcoming') {
+          setState(() => selected = 3);
+          _pageController.jumpToPage(3);
+        }
+      }),
+    );
     _notificationWarnings = NotificationService.warnings.stream.listen((
       message,
     ) {
@@ -92,6 +105,7 @@ class _LaterHomeState extends State<LaterHome> {
   void dispose() {
     _notificationTaps?.cancel();
     _notificationWarnings?.cancel();
+    _homeWidget.dispose();
     _pageController.dispose();
     _sharedPayments.dispose();
     _database.close();
@@ -284,6 +298,7 @@ class _LaterHomeState extends State<LaterHome> {
     if (mounted) {
       setState(() => moneyEntries = loaded);
       await _loadReminderPreferences();
+      await _updateHomeWidget();
     }
   }
 
@@ -299,9 +314,35 @@ class _LaterHomeState extends State<LaterHome> {
     if (mounted) setState(() => reminderPreferences = values);
   }
 
+  Future<void> _updateHomeWidget() async {
+    final upcoming = <(DateTime, String)>[
+      for (final item in entries)
+        if (item.isActive &&
+            item.reminderDate != null &&
+            item.reminderDate!.isAfter(DateTime.now()))
+          (item.reminderDate!, item.title),
+      for (final item in moneyEntries)
+        if (!item.settled &&
+            item.dueDate != null &&
+            item.dueDate!.isAfter(DateTime.now()))
+          (item.dueDate!, item.person),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+    final next = upcoming.isEmpty
+        ? 'No upcoming reminders'
+        : '${upcoming.first.$2}\n${upcoming.first.$1.toLocal().toString().substring(0, 16)}';
+    await _homeWidget.update(name: userName, upcoming: next);
+  }
+
   Future<void> _loadCurrency() async {
     final saved = await _repository.loadCurrency() ?? 'INR';
-    if (mounted) setState(() => currency = saved);
+    final savedName = await _database.setting('user_name') ?? '';
+    if (mounted) {
+      setState(() {
+        currency = saved;
+        userName = savedName;
+      });
+      await _updateHomeWidget();
+    }
   }
 
   Future<void> _loadEntries() async {
@@ -309,11 +350,13 @@ class _LaterHomeState extends State<LaterHome> {
     if (mounted) {
       setState(() => entries = loaded);
       await _loadReminderPreferences();
+      await _updateHomeWidget();
     }
   }
 
   @override
   Widget build(BuildContext context) => HomeScaffold(
+    userName: userName,
     selected: selected,
     pageController: _pageController,
     onSelected: (value) => setState(() => selected = value),

@@ -1,3 +1,5 @@
+import '../../../../core/widgets/note_format.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/date_format.dart';
@@ -18,6 +20,7 @@ class ThingListTile extends StatelessWidget {
     final tint = entry.attachments.isNotEmpty
         ? const Color(0xFFE5DDF1)
         : const Color(0xFFDFE8CE);
+    final progress = checklistProgress(entry.description);
     final detail = entry.reminderDate != null
         ? '${formatDate(entry.reminderDate!)} · ${TimeOfDay.fromDateTime(entry.reminderDate!).format(context)}'
         : entry.attachments.isNotEmpty
@@ -48,7 +51,9 @@ class ThingListTile extends StatelessWidget {
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
-          detail,
+          progress.$2 > 0
+              ? '${progress.$1} of ${progress.$2} done · $detail'
+              : detail,
           style: const TextStyle(fontSize: 11, color: Color(0xFF7A8373)),
         ),
         trailing: onCompleted == null

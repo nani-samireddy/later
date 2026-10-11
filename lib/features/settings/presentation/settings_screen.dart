@@ -33,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   final notifications = NotificationPreferences();
   TimeOfDay time = SettingsPreferences.defaultReminderTime;
   String permission = 'Checking…';
+  String userName = '';
   bool? exact;
   bool busy = false;
   @override
@@ -58,6 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     final saved = db == null
         ? time
         : await SettingsPreferences(db).reminderTime();
+    final savedName = await db?.setting('user_name') ?? '';
     String status;
     bool? exactStatus;
     try {
@@ -73,6 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
     if (mounted) {
       setState(() {
+        userName = savedName;
         time = saved;
         permission = status;
         exact = exactStatus;
@@ -139,10 +142,53 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
+  Future<void> editName() async {
+    final controller = TextEditingController(text: userName);
+    final route = DialogRoute<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Your name'),
+        content: TextField(
+          controller: controller,
+          maxLength: 40,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            helperText: 'Leave blank for “Hey there”',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    final saved = await Navigator.of(context).push(route);
+    await route.completed;
+    controller.dispose();
+    if (saved != null && mounted) {
+      await run(() => widget.database!.saveSetting('user_name', saved));
+      widget.onDataChanged?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24),
     children: [
+      ListTile(
+        title: const Text('Your name'),
+        subtitle: Text(userName.isEmpty ? 'Not set' : userName),
+        trailing: const Icon(Icons.edit_outlined),
+        enabled: !busy && widget.database != null,
+        onTap: editName,
+      ),
       ListTile(
         title: const Text('Default currency'),
         subtitle: const Text('Used for new money entries'),

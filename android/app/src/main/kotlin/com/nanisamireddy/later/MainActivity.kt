@@ -8,6 +8,31 @@ import android.os.Bundle
 import android.widget.Toast
 
 class MainActivity : FlutterActivity() {
+    private var widgetChannel: io.flutter.plugin.common.MethodChannel? = null
+    override fun configureFlutterEngine(engine: io.flutter.embedding.engine.FlutterEngine) {
+        super.configureFlutterEngine(engine)
+        widgetChannel = io.flutter.plugin.common.MethodChannel(engine.dartExecutor.binaryMessenger, "later/home_widget").also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "consumeAction" -> {
+                        val action = intent.getStringExtra("later_widget_action")
+                        intent.removeExtra("later_widget_action")
+                        result.success(action)
+                    }
+                    "update" -> {
+                        getSharedPreferences("later_widget", MODE_PRIVATE).edit()
+                            .putString("greeting", call.argument<String>("greeting"))
+                            .putString("upcoming", call.argument<String>("upcoming")).apply()
+                        val manager = android.appwidget.AppWidgetManager.getInstance(this)
+                        LaterWidgetProvider.update(this, manager, manager.getAppWidgetIds(android.content.ComponentName(this, LaterWidgetProvider::class.java)))
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val rejected = rejectUnreadableShare(intent)
         super.onCreate(savedInstanceState)
@@ -17,6 +42,10 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         val rejected = rejectUnreadableShare(intent)
         super.onNewIntent(intent)
+        intent.getStringExtra("later_widget_action")?.let { action ->
+            widgetChannel?.invokeMethod("action", action)
+            intent.removeExtra("later_widget_action")
+        }
         if (rejected) showShareError()
     }
 

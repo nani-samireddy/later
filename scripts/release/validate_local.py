@@ -24,5 +24,6 @@ sdk = Path(next(line.split('=', 1)[1] for line in Path('android/local.properties
 build_tools = sorted((sdk / 'build-tools').iterdir(), key=lambda p: tuple(int(n) for n in p.name.split('.')))[-1]
 subprocess.run([str(build_tools / 'apksigner'), 'verify', '--verbose', 'build/app/outputs/flutter-apk/app-release.apk'], env=env, check=True)
 subprocess.run([str(build_tools / 'zipalign'), '-c', '-P', '16', '4', 'build/app/outputs/flutter-apk/app-release.apk'], env=env, check=True)
+subprocess.run(['python3', 'scripts/release/verify_media_permissions.py', 'build/app/outputs/flutter-apk/app-release.apk', '--aapt', str(build_tools / 'aapt')], check=True)
 subprocess.run(['python3', 'scripts/release/verify_native_alignment.py', 'build/app/outputs/flutter-apk/app-release.apk'], check=True)
 print('Signed AAB and APK built and verified; APK ZIP and ELF alignment checked.')

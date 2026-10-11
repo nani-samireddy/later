@@ -1,7 +1,8 @@
+import 'thing_editor_screen.dart';
+import '../../../core/widgets/note_body_editor.dart';
 import '../../../core/widgets/entry_reminder_controls.dart';
 import '../../../core/widgets/attachment_panel.dart';
 import '../../../core/attachments/stored_attachment.dart';
-import '../../../core/widgets/reminder_picker.dart';
 
 import 'package:flutter/material.dart';
 
@@ -27,94 +28,11 @@ class _ThingDetailScreenState extends State<ThingDetailScreen> {
   late Thing entry = widget.entry;
   late final ThingsRepository repository = ThingsRepository(widget.database);
   Future<void> _edit() async {
-    final title = TextEditingController(text: entry.title);
-    final description = TextEditingController(text: entry.description);
-    final category = TextEditingController(text: entry.category);
-    DateTime? reminderDate = entry.reminderDate;
-    var saving = false;
-    final formKey = GlobalKey<FormState>();
-    final route = DialogRoute<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, update) => AlertDialog(
-          title: const Text('Edit item'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: title,
-                    decoration: const InputDecoration(labelText: 'Title'),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Enter a title'
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: description,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Description (optional)',
-                    ),
-                  ),
-                  TextFormField(
-                    controller: category,
-                    decoration: const InputDecoration(labelText: 'Category'),
-                  ),
-                  ReminderPicker(
-                    database: widget.database,
-                    value: reminderDate,
-                    onChanged: (value) => update(() => reminderDate = value),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: saving
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      update(() => saving = true);
-                      try {
-                        await repository.edit(
-                          entry.id,
-                          title.text,
-                          category.text,
-                          reminderDate: reminderDate,
-                          description: description.text,
-                        );
-                        if (context.mounted) Navigator.pop(context, true);
-                      } catch (_) {
-                        if (context.mounted) {
-                          update(() => saving = false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Could not save this item. Try again.',
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ThingEditorScreen(entry: entry, repository: repository),
       ),
     );
-    final saved = await Navigator.of(context).push(route);
-    await route.completed;
-    title.dispose();
-    category.dispose();
-    description.dispose();
     if (saved == true) {
       final updated = await repository.find(entry.id);
       if (mounted && updated != null) setState(() => entry = updated);
@@ -208,7 +126,20 @@ class _ThingDetailScreenState extends State<ThingDetailScreen> {
           ),
         if (entry.description.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text(entry.description),
+          NoteBodyView(
+            text: entry.description,
+            onChanged: changingStatus
+                ? null
+                : (body) => _changeStatus(() async {
+                    await repository.edit(
+                      entry.id,
+                      entry.title,
+                      entry.category,
+                      reminderDate: entry.reminderDate,
+                      description: body,
+                    );
+                  }),
+          ),
         ],
         const SizedBox(height: 24),
         if (entry.reminderDate != null)

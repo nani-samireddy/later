@@ -1,3 +1,5 @@
+import '../features/onboarding/presentation/onboarding_gate.dart';
+
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
@@ -10,6 +12,6 @@ class LaterApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     title: 'Later',
     theme: buildAppTheme(),
-    home: const LaterHome(),
+    home: const OnboardingGate(home: LaterHome()),
   );
 }

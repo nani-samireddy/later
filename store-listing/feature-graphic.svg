@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+<rect width="1024" height="500" fill="#edf1e5"/>
+<circle cx="968" cy="32" r="215" fill="#e0e8d3"/>
+<circle cx="100" cy="510" r="180" fill="#e8ddcc"/>
+<circle cx="933" cy="474" r="172" fill="none" stroke="#cad5bd" stroke-width="2"/>
+<g font-family="Arial, sans-serif" fill="#323d35">
+<text x="80" y="114" font-size="24" font-weight="700" letter-spacing="-1">later.</text>
+<text x="80" y="208" font-size="50" font-weight="700" letter-spacing="-2">A little space</text>
+<text x="80" y="267" font-size="50" font-weight="700" letter-spacing="-2">for your day.</text>
+<text x="82" y="326" font-size="19" fill="#68775c">Things remembered. Money clearer.</text>
+<text x="82" y="358" font-size="19" fill="#68775c">One calm place to keep track.</text>
+<g transform="translate(590 95) rotate(-4 150 125)">
+<rect x="8" y="12" width="324" height="90" rx="16" fill="#323d35" opacity=".05"/>
+<rect width="324" height="90" rx="16" fill="#fdfefb" stroke="#dae1d1"/>
+<rect x="18" y="20" width="49" height="49" rx="12" fill="#dfe8ce"/>
+<path d="M31 52c2-16 15-18 23-19 1 13-4 22-17 21m0-1 13-15" fill="none" stroke="#6d8655" stroke-width="2" stroke-linecap="round"/>
+<text x="83" y="39" font-size="16" font-weight="600">Water the balcony plants</text>
+<text x="83" y="62" font-size="12" fill="#7a8373">Tomorrow, 8:00 AM</text>
+<rect x="294" y="31" width="15" height="15" rx="4" fill="none" stroke="#bdcbb0"/>
+<rect y="109" width="153" height="135" rx="16" fill="#e2ebd5" stroke="#d1ddc3"/>
+<text x="17" y="139" font-size="12" fill="#68775c">Owed to you</text>
+<text x="17" y="181" font-size="28" font-weight="700">₹2,400</text>
+<text x="17" y="218" font-size="10" fill="#7a8373">Room for a gentle nudge</text>
+<rect x="169" y="109" width="155" height="135" rx="16" fill="#f6e8d9" stroke="#e6d5c1"/>
+<text x="185" y="139" font-size="12" fill="#68775c">You owe</text>
+<text x="185" y="181" font-size="28" font-weight="700">₹850</text>
+<text x="185" y="218" font-size="10" fill="#7a8373">All in one place</text>
+<rect y="263" width="324" height="71" rx="16" fill="#fdfefb" stroke="#dae1d1"/>
+<rect x="18" y="277" width="40" height="40" rx="10" fill="#f0eadb"/>
+<path d="M29 291h18v17H29zm0 5h18m-13-8v6m8-6v6" fill="none" stroke="#8a8167" stroke-width="1.5"/>
+<text x="75" y="291" font-size="14" font-weight="600">A reminder, right on time.</text>
+<text x="75" y="312" font-size="11" fill="#7a8373">Keep a little room for what matters.</text>
+</g>
+<g transform="translate(503 142)" stroke="#d99763" stroke-width="3" stroke-linecap="round"><path d="M0-17V17M-17 0H17M-12-12 12 12M-12 12 12-12"/></g>
+</g>
+</svg>

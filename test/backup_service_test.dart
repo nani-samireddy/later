@@ -46,7 +46,9 @@ void main() {
         title: 'Private item',
         category: 'Other',
         iconCodePoint: 12,
-        description: const Value('Full description'),
+        description: const Value(
+          'Full description\n- [x] Finished\n- [ ] Pending',
+        ),
         status: const Value('completed'),
         completedAt: Value(DateTime(2026, 10, 1)),
         reminderDate: Value(DateTime(2030)),
@@ -132,7 +134,10 @@ void main() {
       expect(cancelled, contains(extra));
       expect(await db.setting('currency'), 'INR');
       final row = (await db.allThings()).single;
-      expect(row.description, 'Full description');
+      expect(
+        row.description,
+        'Full description\n- [x] Finished\n- [ ] Pending',
+      );
       expect(row.status, 'completed');
       expect(row.completedAt, DateTime(2026, 10, 1));
       final attachment = (await db.attachmentsFor(row.id)).single;

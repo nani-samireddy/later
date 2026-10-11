@@ -2,6 +2,12 @@
 
 Package: `com.nanisamireddy.later`. CI builds artifacts only; Play uploading and publication are **not configured**. No service account is required for the manual closed-testing plan below.
 
+## Media access
+
+Attachments use Android's system document picker (`ACTION_OPEN_DOCUMENT`) and copy selected files into private app storage. Camera capture uses the camera intent. The application manifest removes dependency-provided broad image, video, audio and external-storage permissions. Release validation checks the packaged APK through `scripts/release/verify_media_permissions.py`; builds must fail if those permissions return.
+
+The media-permission correction is built locally as `1.0.0-rc.2` (version code `3`). Upload the replacement AAB and remove the earlier bundle from the pending release. Do not submit a broad photo/video-access justification for occasional attachments. Other active bundles can continue triggering the Play declaration, so review all affected tracks if the warning remains.
+
 ## Checks and builds
 
 `.github/workflows/android.yml` runs release-policy tests, locked dependency resolution, formatting, analysis and Flutter tests on PRs, main pushes and every `android-v*` tag push. The separate signed build job requires all checks to pass. PR checks receive no signing secrets. Actions use full commit pins, checkout does not persist credentials, and the workflow token has only contents-read permission. Flutter 3.47.7 is pinned to commit `abaf9c523780a608bd46686fd5e53740a07077f8`, matching the local toolchain; Ubuntu supplies Java 17 and the Android SDK. CI overrides the local 8 GB Gradle heap with a 4 GB heap, 1 GB metaspace and two workers to fit smaller hosted runners. Upgrade pins deliberately together with the lockfile/toolchain.
