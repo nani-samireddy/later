@@ -1,3 +1,5 @@
+import '../../capture/presentation/note_composer_screen.dart';
+import '../../capture/presentation/voice_capture_dialog.dart';
 import '../../../core/widgets/home_widget_bridge.dart';
 import '../../../core/reminders/reminder_preferences.dart';
 import '../../../core/camera/image_picker_camera.dart';
@@ -36,7 +38,12 @@ class _LaterHomeState extends State<LaterHome> {
   StreamSubscription<String>? _notificationTaps;
   StreamSubscription<String>? _notificationWarnings;
   int selected = 0;
+  final _sectionKeys = {
+    1: GlobalKey<HomeSectionPageState>(),
+    2: GlobalKey<HomeSectionPageState>(),
+  };
   bool _captureOpen = false;
+  bool _quickAddOpen = false;
   Completer<void>? _captureDone;
   late final PageController _pageController;
   List<Thing> entries = [];
@@ -58,7 +65,7 @@ class _LaterHomeState extends State<LaterHome> {
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _homeWidget.start((action) async {
         if (!mounted) return;
-        if (action == 'add') await _showUnifiedAddSheet(context);
+        if (action == 'add') await _quickAdd();
         if (action == 'upcoming') {
           setState(() => selected = 3);
           _pageController.jumpToPage(3);
@@ -219,6 +226,8 @@ class _LaterHomeState extends State<LaterHome> {
           },
         )
       : HomeSectionPage(
+          key: _sectionKeys[index],
+          actionsInScaffold: MediaQuery.sizeOf(context).width < 700,
           database: _database,
           currency: currency,
           index: index,
@@ -330,7 +339,14 @@ class _LaterHomeState extends State<LaterHome> {
     final next = upcoming.isEmpty
         ? 'No upcoming reminders'
         : '${upcoming.first.$2}\n${upcoming.first.$1.toLocal().toString().substring(0, 16)}';
-    await _homeWidget.update(name: userName, upcoming: next);
+    await _homeWidget.update(
+      name: userName,
+      upcoming: next,
+      items: [
+        for (final item in upcoming)
+          {'title': item.$2, 'time': item.$1.millisecondsSinceEpoch},
+      ],
+    );
   }
 
   Future<void> _loadCurrency() async {
@@ -361,13 +377,64 @@ class _LaterHomeState extends State<LaterHome> {
     pageController: _pageController,
     onSelected: (value) => setState(() => selected = value),
     viewFor: _viewFor,
-    onAdd: () => _showUnifiedAddSheet(context),
+    onAdd: _quickAdd,
+    quickAddOpen: _quickAddOpen,
+    onQuickAddSelected: _selectQuickAdd,
     onSearch: () => _openSearch(context),
+    onFilter: _sectionKeys.containsKey(selected)
+        ? () => _sectionKeys[selected]?.currentState?.openFilters()
+        : null,
   );
+
+  Future<void> _quickAdd() async {
+    if (_captureOpen || !mounted) return;
+    setState(() => _quickAddOpen = !_quickAddOpen);
+  }
+
+  Future<void> _selectQuickAdd(String action) async {
+    if (_captureOpen || !mounted) return;
+    setState(() => _quickAddOpen = false);
+    if (action == 'Money') {
+      await _showUnifiedAddSheet(context, initialKind: 'spending');
+      return;
+    }
+    if (action == 'Photo') {
+      await captureCameraEntry(
+        context,
+        service: _capture,
+        currency: currency,
+        onThingsChanged: _loadEntries,
+      );
+      return;
+    }
+    var text = '';
+    if (action == 'Voice') {
+      await showVoiceCaptureDialog(context, onApply: (value) => text = value);
+      if (!mounted || text.isEmpty) return;
+    }
+    _captureOpen = true;
+    _captureDone = Completer<void>();
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => NoteComposerScreen(
+            service: _capture,
+            onChanged: _loadEntries,
+            checklist: action == 'List',
+            initialText: text,
+          ),
+        ),
+      );
+    } finally {
+      _captureOpen = false;
+      _captureDone?.complete();
+    }
+  }
 
   Future<void> _showUnifiedAddSheet(
     BuildContext context, {
     PaymentScreenshotData? paymentScreenshot,
+    String initialKind = 'thing',
   }) async {
     if (_captureOpen || !mounted) return;
     _captureOpen = true;
@@ -380,6 +447,7 @@ class _LaterHomeState extends State<LaterHome> {
         onThingsChanged: _loadEntries,
         onMoneyChanged: _loadMoney,
         paymentScreenshot: paymentScreenshot,
+        initialKind: initialKind,
         onTakePhoto: () => captureCameraEntry(
           context,
           service: _capture,

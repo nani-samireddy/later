@@ -27,6 +27,7 @@ Future<void> showAddEntrySheet(
   required Future<void> Function() onThingsChanged,
   required Future<void> Function() onMoneyChanged,
   PaymentScreenshotData? paymentScreenshot,
+  String initialKind = 'thing',
   Future<bool> Function()? onTakePhoto,
 }) {
   final aiData = paymentScreenshot?.aiData;
@@ -45,7 +46,7 @@ Future<void> showAddEntrySheet(
   );
   final amount = TextEditingController(text: paymentScreenshot?.amount);
   final category = TextEditingController(text: 'General');
-  var kind = aiData?.kind ?? 'thing';
+  var kind = aiData?.kind ?? initialKind;
   var voiceOpen = false;
   var suggesting = false;
   unawaited(LocalAiService.instance.refresh());
@@ -180,7 +181,12 @@ Future<void> showAddEntrySheet(
                                   initialText: title.text,
                                   onApply: (text) {
                                     if (context.mounted) {
-                                      setSheetState(() => title.text = text);
+                                      setSheetState(() {
+                                        title.text = text.characters
+                                            .take(50)
+                                            .toString();
+                                        description.text = text;
+                                      });
                                     }
                                   },
                                 );

@@ -463,7 +463,7 @@ function Capture() {
       text: "Get a thought down while it’s fresh.",
       quote: "Remind me to return the book",
       detail:
-        "Optional voice capture uses a downloaded speech model on your device.",
+        "Live voice capture streams audio to Google Gemini with your permission; OCR and optional AI extraction run locally.",
     },
     {
       icon: Camera,
@@ -599,7 +599,7 @@ function Privacy() {
               <Check size={16} /> Everyday entries work offline
             </li>
             <li>
-              <Check size={16} /> Optional voice, OCR, and AI process locally
+              <Check size={16} /> Live voice capture; local OCR and AI
             </li>
             <li>
               <Check size={16} /> Export and restore your own local backup
@@ -708,7 +708,7 @@ const privacySections = [
   ],
   [
     "Optional voice capture",
-    "Voice capture requests microphone access for the session you start. Audio is processed by an on-device speech recognizer after its model has been downloaded. The current voice implementation does not upload recordings for transcription or save a reusable recording as an attachment; recognized text is placed in an entry draft for you to review. Voice model availability, language support, and behavior depend on the device and app build.",
+    "Voice capture is optional and asks for microphone access and your permission before sending audio to Google Gemini for live transcription. Internet is required. A Cloudflare service limits requests and issues a short-lived token; it receives request information such as IP address, but does not receive voice audio or note contents. Audio streams directly to Google, whose processing and retention policies apply. Google lists paid Gemini API data as not used to improve its products; free-tier data may be used for that purpose. Later does not save audio recordings. Transcribed text stays in a draft for you to review before saving. Capture ends when you stop, close the screen, background the app, or reach the session limit.",
   ],
   [
     "Optional OCR and local AI",

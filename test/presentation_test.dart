@@ -66,7 +66,7 @@ void main() {
     expect(find.byType(NavigationRail), findsOneWidget);
     await tester.tap(find.byIcon(Icons.account_balance_wallet_outlined));
     expect(selected, 2);
-    await tester.tap(find.text('Add'));
+    await tester.tap(find.byTooltip('Add'));
     expect(addCount, 1);
     await tester.pumpWidget(const SizedBox());
   });

@@ -231,7 +231,7 @@ void main() {
       await render();
       expect(find.text('Active record'), findsOneWidget);
       expect(find.text('Completed record'), findsNothing);
-      await tester.tap(find.text('Filter'));
+      await tester.tap(find.byTooltip('Filter'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Status: Active ▾'));
       await tester.pumpAndSettle();
@@ -256,7 +256,7 @@ void main() {
       await render();
       expect(find.text('Refreshed record'), findsOneWidget);
       expect(find.text('Completed record'), findsNothing);
-      await tester.tap(find.text('Filter'));
+      await tester.tap(find.byTooltip('Filter'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Status: Completed ▾'));
       await tester.pumpAndSettle();

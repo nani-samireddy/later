@@ -130,6 +130,35 @@ void main() {
       );
     },
   );
+  testWidgets('search and filter fit together on a narrow screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 890);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final database = db.AppDatabase.withExecutor(NativeDatabase.memory());
+    addTearDown(database.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SearchScreen(
+          things: [thing(1)],
+          moneyEntries: const [],
+          database: database,
+          onThingTap: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = tester.getRect(find.byType(TextField));
+    final filter = tester.getRect(find.text('Filter'));
+    expect(filter.left, greaterThan(field.right));
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Filter'));
+    await tester.pumpAndSettle();
+    expect(find.text('Search filters'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('filter sheet applies, retains, cancels and resets selections', (
     tester,
   ) async {

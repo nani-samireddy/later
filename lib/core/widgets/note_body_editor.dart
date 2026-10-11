@@ -9,15 +9,19 @@ class NoteBodyEditor extends StatefulWidget {
   final TextEditingController controller;
   final bool enabled;
   final ValueChanged<String>? onChanged;
+  final bool compact;
+  final bool hideControls;
   const NoteBodyEditor({
     super.key,
     required this.controller,
     this.enabled = true,
     this.onChanged,
+    this.compact = false,
+    this.hideControls = false,
   });
 
   @override
-  State<NoteBodyEditor> createState() => _NoteBodyEditorState();
+  State<NoteBodyEditor> createState() => NoteBodyEditorState();
 }
 
 class _NoteRow {
@@ -29,7 +33,7 @@ class _NoteRow {
     : text = TextEditingController(text: value);
 }
 
-class _NoteBodyEditorState extends State<NoteBodyEditor> {
+class NoteBodyEditorState extends State<NoteBodyEditor> {
   bool checklist = false;
   final rows = <_NoteRow>[];
 
@@ -66,6 +70,37 @@ class _NoteBodyEditorState extends State<NoteBodyEditor> {
         )
         .join('\n');
     widget.onChanged?.call(widget.controller.text);
+  }
+
+  void toggleChecklist() => _toggleMode();
+
+  void applyFormat(String format) {
+    final focused = rows.where((row) => row.focus.hasFocus);
+    final c = checklist && rows.isNotEmpty
+        ? (focused.isEmpty ? rows.first.text : focused.first.text)
+        : widget.controller;
+    final selection = c.selection;
+    final start = selection.isValid ? selection.start : c.text.length;
+    final end = selection.isValid ? selection.end : start;
+    final marker = {
+      'Bold': '**',
+      'Italic': '*',
+      'Underline': '__',
+      'Heading': '# ',
+    }[format]!;
+    final text = c.text.substring(start, end);
+    final inserted = format == 'Heading'
+        ? marker + text
+        : marker + text + marker;
+    c.value = TextEditingValue(
+      text: c.text.replaceRange(start, end, inserted),
+      selection: TextSelection.collapsed(offset: start + inserted.length),
+    );
+    if (checklist) {
+      _sync();
+    } else {
+      widget.onChanged?.call(c.text);
+    }
   }
 
   void _toggleMode() {
@@ -114,45 +149,46 @@ class _NoteBodyEditorState extends State<NoteBodyEditor> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       if (!checklist) ...[
-        Wrap(
-          children: [
-            for (final format in ['Bold', 'Italic', 'Underline', 'Heading'])
-              TextButton(
-                onPressed: !widget.enabled
-                    ? null
-                    : () {
-                        final controller = widget.controller;
-                        final selected = controller.selection;
-                        final start = selected.isValid
-                            ? selected.start
-                            : controller.text.length;
-                        final end = selected.isValid ? selected.end : start;
-                        final marker = {
-                          'Bold': '**',
-                          'Italic': '*',
-                          'Underline': '__',
-                          'Heading': '# ',
-                        }[format]!;
-                        final content = controller.text.substring(start, end);
-                        final inserted = format == 'Heading'
-                            ? marker + content
-                            : marker + content + marker;
-                        controller.value = TextEditingValue(
-                          text: controller.text.replaceRange(
-                            start,
-                            end,
-                            inserted,
-                          ),
-                          selection: TextSelection.collapsed(
-                            offset: start + inserted.length,
-                          ),
-                        );
-                        widget.onChanged?.call(controller.text);
-                      },
-                child: Text(format),
-              ),
-          ],
-        ),
+        if (!widget.compact)
+          Wrap(
+            children: [
+              for (final format in ['Bold', 'Italic', 'Underline', 'Heading'])
+                TextButton(
+                  onPressed: !widget.enabled
+                      ? null
+                      : () {
+                          final controller = widget.controller;
+                          final selected = controller.selection;
+                          final start = selected.isValid
+                              ? selected.start
+                              : controller.text.length;
+                          final end = selected.isValid ? selected.end : start;
+                          final marker = {
+                            'Bold': '**',
+                            'Italic': '*',
+                            'Underline': '__',
+                            'Heading': '# ',
+                          }[format]!;
+                          final content = controller.text.substring(start, end);
+                          final inserted = format == 'Heading'
+                              ? marker + content
+                              : marker + content + marker;
+                          controller.value = TextEditingValue(
+                            text: controller.text.replaceRange(
+                              start,
+                              end,
+                              inserted,
+                            ),
+                            selection: TextSelection.collapsed(
+                              offset: start + inserted.length,
+                            ),
+                          );
+                          widget.onChanged?.call(controller.text);
+                        },
+                  child: Text(format),
+                ),
+            ],
+          ),
         TextField(
           controller: widget.controller,
           onChanged: widget.onChanged,
@@ -161,8 +197,8 @@ class _NoteBodyEditorState extends State<NoteBodyEditor> {
           maxLines: null,
           textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
-            labelText: 'Note (optional)',
-            hintText: 'Write anything you want to remember',
+            hintText: 'Note',
+            border: InputBorder.none,
           ),
         ),
       ] else ...[
@@ -173,7 +209,18 @@ class _NoteBodyEditorState extends State<NoteBodyEditor> {
           onReorderItem: (oldIndex, newIndex) {
             if (!widget.enabled) return;
             setState(() {
-              rows.insert(newIndex, rows.removeAt(oldIndex));
+              var end = oldIndex + 1;
+              while (end < rows.length &&
+                  rows[end].depth > rows[oldIndex].depth) {
+                end++;
+              }
+              if (newIndex >= oldIndex && newIndex < end) return;
+              final block = rows.sublist(oldIndex, end);
+              rows.removeRange(oldIndex, end);
+              final target = newIndex > oldIndex
+                  ? newIndex - (block.length - 1)
+                  : newIndex;
+              rows.insertAll(target.clamp(0, rows.length), block);
             });
             _sync();
           },
@@ -273,11 +320,58 @@ class _NoteBodyEditorState extends State<NoteBodyEditor> {
           label: const Text('Add list item'),
         ),
       ],
-      TextButton.icon(
-        onPressed: widget.enabled ? _toggleMode : null,
-        icon: Icon(checklist ? Icons.notes : Icons.checklist),
-        label: Text(checklist ? 'Hide checkboxes' : 'Show checkboxes'),
-      ),
+      if (widget.hideControls)
+        const SizedBox.shrink()
+      else if (widget.compact)
+        Row(
+          children: [
+            IconButton(
+              tooltip: checklist ? 'Hide checkboxes' : 'Show checkboxes',
+              onPressed: widget.enabled ? _toggleMode : null,
+              icon: Icon(checklist ? Icons.notes : Icons.checklist),
+            ),
+            PopupMenuButton<String>(
+              tooltip: 'Formatting',
+              icon: const Icon(Icons.text_format),
+              enabled: widget.enabled && !checklist,
+              itemBuilder: (_) => [
+                for (final label in ['Bold', 'Italic', 'Underline', 'Heading'])
+                  PopupMenuItem(value: label, child: Text(label)),
+              ],
+              onSelected: (format) {
+                final c = widget.controller;
+                final selection = c.selection;
+                final start = selection.isValid
+                    ? selection.start
+                    : c.text.length;
+                final end = selection.isValid ? selection.end : start;
+                final marker = {
+                  'Bold': '**',
+                  'Italic': '*',
+                  'Underline': '__',
+                  'Heading': '# ',
+                }[format]!;
+                final text = c.text.substring(start, end);
+                final inserted = format == 'Heading'
+                    ? marker + text
+                    : marker + text + marker;
+                c.value = TextEditingValue(
+                  text: c.text.replaceRange(start, end, inserted),
+                  selection: TextSelection.collapsed(
+                    offset: start + inserted.length,
+                  ),
+                );
+                widget.onChanged?.call(c.text);
+              },
+            ),
+          ],
+        )
+      else
+        TextButton.icon(
+          onPressed: widget.enabled ? _toggleMode : null,
+          icon: Icon(checklist ? Icons.notes : Icons.checklist),
+          label: Text(checklist ? 'Hide checkboxes' : 'Show checkboxes'),
+        ),
     ],
   );
 }

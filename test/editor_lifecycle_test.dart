@@ -11,11 +11,18 @@ void main() {
     tester,
   ) async {
     final database = db.AppDatabase.withExecutor(NativeDatabase.memory());
+    final id = await database.addThing(
+      db.ThingsCompanion.insert(
+        title: 'Passport',
+        category: 'General',
+        iconCodePoint: Icons.bookmark.codePoint,
+      ),
+    );
     await tester.pumpWidget(
       MaterialApp(
         home: ThingDetailScreen(
           entry: Thing(
-            id: 1,
+            id: id,
             title: 'Passport',
             category: 'General',
             icon: Icons.bookmark,
@@ -27,8 +34,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Edit'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, 'Edited');
-    await tester.tap(find.text('Cancel'));
+    await tester.enterText(find.byType(TextField).first, 'Edited');
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

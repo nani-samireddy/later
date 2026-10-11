@@ -8,9 +8,11 @@ import android.os.Bundle
 import android.widget.Toast
 
 class MainActivity : FlutterActivity() {
+    private var speechBridge: NativeSpeechBridge? = null
     private var widgetChannel: io.flutter.plugin.common.MethodChannel? = null
     override fun configureFlutterEngine(engine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(engine)
+        speechBridge = NativeSpeechBridge(this, engine.dartExecutor.binaryMessenger)
         widgetChannel = io.flutter.plugin.common.MethodChannel(engine.dartExecutor.binaryMessenger, "later/home_widget").also { channel ->
             channel.setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -22,7 +24,8 @@ class MainActivity : FlutterActivity() {
                     "update" -> {
                         getSharedPreferences("later_widget", MODE_PRIVATE).edit()
                             .putString("greeting", call.argument<String>("greeting"))
-                            .putString("upcoming", call.argument<String>("upcoming")).apply()
+                            .putString("upcoming", call.argument<String>("upcoming"))
+                            .putString("items", org.json.JSONArray(call.argument<List<Map<String, Any>>>("items") ?: emptyList<Map<String, Any>>()).toString()).apply()
                         val manager = android.appwidget.AppWidgetManager.getInstance(this)
                         LaterWidgetProvider.update(this, manager, manager.getAppWidgetIds(android.content.ComponentName(this, LaterWidgetProvider::class.java)))
                         result.success(null)
@@ -31,6 +34,11 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        speechBridge?.dispose()
+        super.onDestroy()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

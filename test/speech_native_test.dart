@@ -67,6 +67,18 @@ void main() {
       try {
         await service.start(transcripts.add, onError: errors.add);
         await mic.feed();
+        // Require real changing hypotheses while PCM is arriving, before the
+        // final flush. A decoder that only returns text on stop must fail here.
+        final liveHypotheses = transcripts
+            .where((text) => text.trim().isNotEmpty)
+            .toSet();
+        expect(liveHypotheses.length, greaterThan(1));
+        expect(
+          liveHypotheses.any(
+            (text) => text.toLowerCase().contains('the yellow lamps'),
+          ),
+          isTrue,
+        );
         await service.stop();
         expect(errors, isEmpty);
         expect(

@@ -27,6 +27,7 @@ class HomeSectionPage extends StatefulWidget {
   final String query;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearchTap;
+  final bool actionsInScaffold;
   const HomeSectionPage({
     super.key,
     required this.database,
@@ -40,12 +41,13 @@ class HomeSectionPage extends StatefulWidget {
     required this.query,
     required this.onQueryChanged,
     required this.onSearchTap,
+    this.actionsInScaffold = false,
   });
   @override
-  State<HomeSectionPage> createState() => _HomeSectionPageState();
+  State<HomeSectionPage> createState() => HomeSectionPageState();
 }
 
-class _HomeSectionPageState extends State<HomeSectionPage> {
+class HomeSectionPageState extends State<HomeSectionPage> {
   EntryFilters filters = const EntryFilters(status: ThingStatus.active);
   @override
   void didUpdateWidget(covariant HomeSectionPage oldWidget) {
@@ -55,25 +57,19 @@ class _HomeSectionPageState extends State<HomeSectionPage> {
     }
   }
 
-  Widget _filterButton() => Align(
-    alignment: Alignment.centerRight,
-    child: OutlinedButton.icon(
-      onPressed: () async {
-        final result = await showEntryFilterSheet(
-          context,
-          filters: filters,
-          categories: (entries.map((e) => e.category).toSet().toList()..sort()),
-          title: index == 1 ? 'Things filters' : 'Money filters',
-          showThings: index == 1,
-          showMoney: index == 2,
-          resetStatus: index == 1 ? ThingStatus.active : null,
-        );
-        if (result != null && mounted) setState(() => filters = result);
-      },
-      icon: const Icon(Icons.filter_list_rounded, size: 18),
-      label: const Text('Filter'),
-    ),
-  );
+  Future<void> openFilters() async {
+    FocusScope.of(context).unfocus();
+    final result = await showEntryFilterSheet(
+      context,
+      filters: filters,
+      categories: (entries.map((e) => e.category).toSet().toList()..sort()),
+      title: index == 1 ? 'Things filters' : 'Money filters',
+      showThings: index == 1,
+      showMoney: index == 2,
+      resetStatus: index == 1 ? ThingStatus.active : null,
+    );
+    if (result != null && mounted) setState(() => filters = result);
+  }
 
   AppDatabase get database => widget.database;
   ValueChanged<Thing> get onThingTap => widget.onThingTap;
@@ -111,18 +107,28 @@ class _HomeSectionPageState extends State<HomeSectionPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              IconButton(
-                onPressed: onSearchTap,
-                tooltip: 'Search everything',
-                icon: const Icon(Icons.search_rounded),
-              ),
+              if (!widget.actionsInScaffold) ...[
+                IconButton(
+                  onPressed: onSearchTap,
+                  tooltip: 'Search everything',
+                  icon: const Icon(Icons.search_rounded),
+                ),
+                if (index == 1 || index == 2)
+                  IconButton(
+                    onPressed: openFilters,
+                    tooltip: 'Filter',
+                    icon: const Icon(Icons.filter_list_rounded),
+                  ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -132,8 +138,6 @@ class _HomeSectionPageState extends State<HomeSectionPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _filterButton(),
-                const SizedBox(height: 16),
                 Text(
                   '${visible.length} ${filters.status?.label.toLowerCase() ?? 'matching'} items',
                   style: const TextStyle(
@@ -165,8 +169,6 @@ class _HomeSectionPageState extends State<HomeSectionPage> {
                   defaultCurrency: widget.currency,
                 ),
                 const SizedBox(height: 16),
-                _filterButton(),
-                const SizedBox(height: 12),
                 if (visibleMoney.isEmpty)
                   const EmptyState(
                     icon: Icons.account_balance_wallet_outlined,

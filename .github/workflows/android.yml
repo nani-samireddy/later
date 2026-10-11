@@ -63,6 +63,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VOICE_TOKEN_URL: ${{ vars.VOICE_TOKEN_URL }}
           BUILD_NAME: ${{ needs.checks.outputs.build_name }}
           BUILD_NUMBER: ${{ needs.checks.outputs.build_number }}
         shell: bash
@@ -78,8 +79,8 @@ jobs:
           test -n "$KEYSTORE_BASE64" || { echo '::error::Configure android-release signing secrets (docs/android-release.md).'; exit 1; }
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
           unset KEYSTORE_BASE64
-          flutter build appbundle --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
-          flutter build apk --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
+          flutter build appbundle --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" --dart-define="VOICE_TOKEN_URL=${VOICE_TOKEN_URL:-}"
+          flutter build apk --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" --dart-define="VOICE_TOKEN_URL=${VOICE_TOKEN_URL:-}"
           jarsigner -verify build/app/outputs/bundle/release/app-release.aab | tee "$RUNNER_TEMP/aab-verification.txt"
           grep -q 'jar verified' "$RUNNER_TEMP/aab-verification.txt"
           build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"

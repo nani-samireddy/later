@@ -38,7 +38,7 @@ abstract interface class SpeechMicrophone {
   Future<void> dispose();
 }
 
-class _RecordMicrophone implements SpeechMicrophone {
+class RecordSpeechMicrophone implements SpeechMicrophone {
   final _recorder = AudioRecorder();
   @override
   Future<bool> hasPermission() => _recorder.hasPermission();
@@ -71,7 +71,7 @@ class SherpaSpeechService implements SpeechSession {
     )?
     prepareModel,
     SpeechDecoder Function(String)? decoderFactory,
-  }) : _microphone = microphone ?? _RecordMicrophone(),
+  }) : _microphone = microphone ?? RecordSpeechMicrophone(),
        _prepareModel =
            prepareModel ??
            ((token, progress) => SpeechModelStore.ensureModel(

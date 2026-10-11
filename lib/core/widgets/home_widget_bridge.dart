@@ -20,12 +20,17 @@ class HomeWidgetBridge {
     } on MissingPluginException catch (_) {}
   }
 
-  Future<void> update({required String name, required String upcoming}) async {
+  Future<void> update({
+    required String name,
+    required String upcoming,
+    List<Map<String, Object>> items = const [],
+  }) async {
     if (!supported) return;
     try {
       await channel.invokeMethod<void>('update', {
         'greeting': name.isEmpty ? 'later.' : 'Hey, $name',
         'upcoming': upcoming,
+        'items': items,
       });
     } on PlatformException catch (_) {
     } on MissingPluginException catch (_) {}

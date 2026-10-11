@@ -4,7 +4,65 @@ import 'package:later/core/speech/voice_capture_controller.dart';
 
 import 'voice_fake_session.dart';
 
+class FinalizingVoiceSession extends FakeVoiceSession {
+  @override
+  Future<void> stop() async {
+    text?.call('final words');
+    await super.stop();
+  }
+}
+
 void main() {
+  test('pause retains final recognition emitted during stop', () async {
+    final session = FinalizingVoiceSession();
+    final controller = VoiceCaptureController(
+      session: session,
+      initialText: 'Draft',
+    );
+    await controller.start();
+    session.text!('partial');
+    await controller.stop();
+    expect(controller.phase, VoiceCapturePhase.review);
+    expect(controller.text, 'Draft final words');
+    expect(controller.canApply, true);
+    await controller.close();
+    controller.dispose();
+  });
+
+  test(
+    'resume appends incremental segment without duplicating hypotheses',
+    () async {
+      final session = FakeVoiceSession();
+      final controller = VoiceCaptureController(
+        session: session,
+        initialText: 'Remember',
+      );
+      await controller.start();
+      session.text!('to call');
+      session.text!('to call Maya');
+      expect(controller.text, 'Remember to call Maya');
+      final previousText = session.text!;
+      await controller.stop();
+      previousText('stale result');
+      expect(controller.text, 'Remember to call Maya');
+      await controller.start();
+      expect(controller.text, 'Remember to call Maya');
+      session.text!('');
+      expect(controller.text, 'Remember to call Maya');
+      session.text!('tomorrow');
+      session.text!('tomorrow morning');
+      previousText('another stale result');
+      expect(controller.text, 'Remember to call Maya tomorrow morning');
+      await controller.stop();
+      controller.edit('Edited draft');
+      await controller.start();
+      session.text!('and bring books');
+      expect(controller.text, 'Edited draft and bring books');
+      await controller.close();
+      controller.dispose();
+    },
+  );
+
   test(
     'permission denial preserves manual draft and retry reaches listening',
     () async {
@@ -24,7 +82,8 @@ void main() {
       expect(controller.canApply, false);
       await controller.stop();
       expect(controller.phase, VoiceCapturePhase.review);
-      expect(controller.canApply, false);
+      expect(controller.canApply, true);
+      expect(controller.text, 'pay 200 for books');
       controller.edit('call Maya tomorrow');
       expect(controller.canApply, true);
       controller.dispose();

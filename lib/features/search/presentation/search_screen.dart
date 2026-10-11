@@ -83,13 +83,10 @@ class _SearchScreenState extends State<SearchScreen> {
             border: InputBorder.none,
           ),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
               onPressed: _openFilters,
               icon: const Icon(Icons.filter_list_rounded),
               label: Text(
@@ -105,6 +102,11 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
           if (things.isNotEmpty) ...[
             const SearchHeading('Things'),
             ...things.map(

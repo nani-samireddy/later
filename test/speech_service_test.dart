@@ -38,17 +38,21 @@ class FakeDecoder implements SpeechDecoder {
   int accepts = 0, resets = 0, disposals = 0, finishes = 0;
   final samples = <double>[];
   String current = '';
+  List<String>? hypotheses;
+  bool endpointEnabled = true;
   Object? finishError;
   @override
   String accept(Float32List input) {
     samples.addAll(input);
     accepts++;
-    current = accepts == 1 ? 'call Maya' : 'tomorrow';
+    current = hypotheses == null
+        ? (accepts == 1 ? 'call Maya' : 'tomorrow')
+        : hypotheses![accepts - 1];
     return current;
   }
 
   @override
-  bool get isEndpoint => accepts == 1 && resets == 0;
+  bool get isEndpoint => endpointEnabled && accepts == 1 && resets == 0;
   @override
   void reset() {
     resets++;
@@ -199,6 +203,26 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(decoder.accepts, 2);
   });
+
+  test(
+    'replaces evolving hypotheses live without duplicating revised words',
+    () async {
+      decoder.endpointEnabled = false;
+      decoder.hypotheses = ['call', 'call May', 'call Maya tomorrow'];
+      final texts = <String>[];
+      await service.start(texts.add);
+      for (var index = 0; index < 3; index++) {
+        mic.audio.add(Uint8List.fromList([0, 64]));
+        await Future<void>.delayed(Duration.zero);
+        expect(texts.last, decoder.hypotheses![index]);
+        expect(decoder.finishes, 0);
+      }
+      expect(texts, ['call', 'call May', 'call Maya tomorrow']);
+      expect(decoder.resets, 0);
+      await service.stop();
+      expect(texts.last, 'call Maya tomorrow');
+    },
+  );
 
   test(
     'native finish failure still releases subscription, recorder and decoder',

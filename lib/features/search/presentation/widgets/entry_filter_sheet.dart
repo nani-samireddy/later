@@ -36,14 +36,15 @@ Future<EntryFilters?> showEntryFilterSheet(
               onChanged: (value) => draft = value,
             ),
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Cancel'),
                 ),
-                const SizedBox(width: 12),
                 FilledButton(
                   onPressed: () => Navigator.pop(context, draft),
                   child: const Text('Apply filters'),
